@@ -1,0 +1,12 @@
+{
+    "mail":{
+        "enabled":false,
+        "server":{
+            "user" : "",
+            "password" : "",
+            "host" : "",
+            "port" : 25,
+            "tls" : true
+        }
+    }
+}
