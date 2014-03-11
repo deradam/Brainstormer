@@ -1,0 +1,97 @@
+!!! 5
+html
+    head
+        title
+            | Brainstormer
+        link(type='text/css', rel='stylesheet', href='css/normalize.css')
+        link(type='text/css', rel='stylesheet', href='css/main.css')
+        link(type='text/css', rel='stylesheet', href='http://fonts.googleapis.com/css?family=Engagement')
+        //
+           Piwik 
+        script.(type='text/javascript')
+            var pkBaseURL = (("https:" == document.location.protocol) ? "https://piwik.collide.info/" : "http://piwik.collide.info/");
+            document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/javascript'%3E%3C/script%3E"));
+        script.(type='text/javascript')
+            try {
+            var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", 5);
+            piwikTracker.trackPageView();
+            piwikTracker.enableLinkTracking();
+            } catch (err) {
+            }
+        noscript
+            p
+                img(src='http://piwik.collide.info/piwik.php?idsite=5', style='border: 0;', alt='')
+        //  
+           End Piwik Tracking Code 
+    body
+        header
+            #header Brainstormer
+        section.body
+            #left
+                #title Brainstormer
+                #subtitle
+                    | The
+                    span.underline free
+                    span.underline online
+                    span.underline collaborative
+                    br
+                    | brainstorming application!
+                a#startbutton(href='/session/new') Start New Session!
+            #right
+                #screenshot
+                    a(href='http://vimeo.com/34840386', target='_blank')
+                        img(src='img/screenshot.jpg')
+        footer
+            div
+                section
+                    div
+                        header What is Brainstormer?
+                        article
+                            | Brainstormer is an online brainstorming tool, that supports realtime collaboration
+                            | across browsers and devices. Brainstormer works in all major browsers, on the iPad,
+                            | Android tablets and also on mobile phones! The best of all:
+                            span.underline Brainstormer is for free
+                            | and does not require any login!
+                section
+                    .blue
+                        header How much does it cost?
+                        article
+                            | Brainstormer is for
+                            span.underline free
+                            | ! You don't have to pay anything. You don't even have to
+                            | register or create an account. Just start a new Brainstormer session and share the link via your favourite instant messenger or
+                            | e-mail
+                            | with your collaborators and start brainstorming.
+                section
+                    .red
+                        header How do you handle security and privacy?
+                        article
+                            | Brainstormer sessions in general are open. Everyone knowing the session id can access the
+                            | session.
+                            | However, the sessions are not listed anywhere. Therefore it is very unlikely that someone will join
+                            | your session without knowing the link just by guessing the session id.
+                section
+                    .yellow
+                        header How does it work?
+                        article
+                            | Brainstormer has been implemented using HTML, Javascript, CSS in the frontend and
+                            | nodejs, express, nowjs, socket.io, Mongoose and MongoDB in the backend. If you did not hear about
+                            | these technologies, we can recommend having a look at them!
+                section
+                    div
+                        header How can I report or comment on brainstormer?
+                        article
+                            | If you like Brainstormer, spread the word! If you have any problems or suggestions, drop us a mail!
+                            br
+                            br
+                            | email: giemza [at] collide.info
+                            br
+                            br
+                            | twitter: @deradam
+            #text
+                | © 2012 -
+                a(target='_blank', href='http://www.collide.info') Collide Research Group
+                | -
+                a(href='http://www.uni-due.de', target='_blank') University of Duisburg-Essen
+                | -
+                a(href='http://www.uni-due.de/de/impressum.shtml', target='_blank') Legal Notice
