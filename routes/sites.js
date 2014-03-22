@@ -75,9 +75,7 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
     session.creation = Date.now();
     session.post('save', function (next) {
         res.redirect('/session/' + session.uuid);
-        // todo send mail
-        var ip = req.headers['X-Forwarded-For'] || req.connection.remoteAddress;
-        mailer.sendMail(ip, session.uuid);
+        mailer.sendMail(req.ip, session.uuid);
     });
     session.save(function (error) {
         if (!error) {

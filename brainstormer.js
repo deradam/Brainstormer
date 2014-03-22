@@ -40,6 +40,7 @@ app.configure('production', function () {
     app.use(express.static(__dirname + '/public', {maxAge:oneYear}));
     app.use(app.router);
     app.use(express.errorHandler());
+    app.enable('trust proxy');
 });
 
 // setting up server
