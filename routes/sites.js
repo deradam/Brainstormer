@@ -12,6 +12,18 @@ exports.index = function(req, res){
     res.render('index');
 };
 
+exports.indexNew=function(req,res){
+  res.render('indexNew');
+};
+
+exports.brainstormNew=function(req,res){
+    res.render('brainstormNew');
+};
+
+exports.home=function(req,res){
+    res.render('home');
+};
+
 exports.newSession = function (req, res, next) {
     var sessionId = req.params.sessionid;
     if (sessionId) {
@@ -39,7 +51,7 @@ exports.getSession = function (req, res, next) {
                 next(new Error('Error during finding session with id ' + sessionId));
             } else {
                 if (session) {
-                    res.render('brainstorm');
+                    res.render('brainstormNew');
                 } else {
                     res.redirect('/');
                 }
@@ -71,11 +83,12 @@ function findNewSessionIdAndCreate(req, res, next, sessionId) {
 
 var createSessionAndRedirect = function createSessionAndRedirect(req, res, next, sessionId) {
     var session = new Session();
+
     session.uuid = sessionId;
     session.creation = Date.now();
     session.post('save', function (next) {
         res.redirect('/session/' + session.uuid);
-        mailer.sendMail(req.ip, session.uuid);
+        //mailer.sendMail(req.ip, session.uuid);
     });
     session.save(function (error) {
         if (!error) {
@@ -84,4 +97,6 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
             next(new Error('Cannot create a new session ' + util.inspect(error)));
         }
     });
+
+
 };

@@ -34,6 +34,19 @@ $('document').ready(function () {
         }
     });
 
+    $('#colorpalette1').colorPalette()
+        .on('selectColor', function(e) {
+
+            var contribution = $('.selected');
+            if (contribution.length > 0) {
+                getNoteColored(contribution.find('section'), e.color);
+                var _id = $(contribution).attr('_id');
+                $.post('/notes/update/' + _id, {color: e.color});
+            }
+
+            //alert(e.color);
+     });
+
     $('div#add').on('click', addNote);
     $('div#white').on('click', function () {
         var contribution = $('.selected');
@@ -72,8 +85,9 @@ $('document').ready(function () {
     });
 
     $('input[name="topic"]').keyup(function (event) {
-        event.stopPropagation();
-        if (event.which == 13) {
+        var code = event.which;
+        //event.stopPropagation();
+        if (code == 13) {
             addNote();
         }
     });
@@ -139,7 +153,7 @@ $('document').ready(function () {
             $(contribution).find('section').html(note.text);
         }
         if (note.color) {
-            colorNote(contribution.find('section'), note.color);
+            getNoteColored(contribution.find('section'), note.color);
         }
     });
 
@@ -185,6 +199,14 @@ var resetSearch = function () {
     var contributions = $('.contribution');
     contributions.removeClass('matching');
     contributions.removeClass('notmatching');
+};
+
+var getNoteColored=function(contribution, color){
+
+    if(contribution){
+        $(contribution).css({backgroundColor:"'"+color+"'"});
+    }
+
 };
 
 var colorNote = function (contribution, color) {
@@ -233,8 +255,8 @@ var formatDate = function (date) {
 };
 
 var updateSelection = function (contribution) {
-    $('input[type=search]').blur();
-    $('input[name=topic]').blur();
+    $('input[type="search"]').blur();
+    $('input[name="topic"]').blur();
     var selected = $('.selected');
     if (selected.length > 0 && selected[0] !== contribution) {
         selected.removeClass('selected');
@@ -274,7 +296,7 @@ var addContribution = function (uuid, date, text, left, top, color) {
         }
     });
     var section = contrib.find('section');
-    colorNote(section, color);
+    getNoteColored(section, color);
     $(section).editable({
         editBy:'dblclick',
         editClass:'editable',

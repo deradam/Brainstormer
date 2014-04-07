@@ -13,13 +13,14 @@ require('./io/websocket').setLogger(logger);
 // setting up the web server
 var express = require('express');
 var app = express();
+var path = require('path');
 
 // importing mongodb-based session store
 var MongoStore = require('connect-mongo')(express);
 
 app.configure(function () {
     app.use(log4js.connectLogger(logger, { level:log4js.levels.INFO }));
-    app.set('view engine', 'jade');
+    app.set('view engine', 'ejs');
     app.set('view options', {layout:false});
     app.use(express.methodOverride());
     app.use(express.bodyParser());
@@ -28,7 +29,9 @@ app.configure(function () {
 
 app.configure('development', function () {
     app.use(express.session({secret:'s3cr3t'}));
-    app.use(express.static(__dirname + '/public'));
+    //app.use(express.static(__dirname + '/public'));
+    app.use(express.static(path.join(__dirname, 'public')));
+
     app.use(app.router);
     app.use(express.errorHandler({ dumpExceptions:true, showStack:true }));
 });
@@ -37,7 +40,7 @@ app.configure('production', function () {
     app.use(express.session({secret:'c0ll1d3', store: new MongoStore({ db: 'sessionstore' })}));
 //    app.use(require('express-uglify').middleware({ src: __dirname + '/public' }));
     var oneYear = 31557600000;
-    app.use(express.static(__dirname + '/public', {maxAge:oneYear}));
+    app.use(express.static(path.join((__dirname + '/public', {maxAge:oneYear}))));
     app.use(app.router);
     app.use(express.errorHandler());
     app.enable('trust proxy');
@@ -55,7 +58,15 @@ io.listen(server);
 var routes = require('./routes');
 
 // site
-app.get('/', routes.sites.index);
+
+//app.get('/indexNew', routes.sites.indexNew);
+//app.get('/brainstormNew', routes.sites.brainstormNew);
+//app.get('/', routes.sites.index);
+//app.get('/session/new/:sessionid?', routes.sites.newSession);
+//app.get('/session/:id', routes.sites.getSession);
+
+app.get('/', routes.sites.indexNew);
+app.get('/home',routes.sites.home);
 app.get('/session/new/:sessionid?', routes.sites.newSession);
 app.get('/session/:id', routes.sites.getSession);
 
