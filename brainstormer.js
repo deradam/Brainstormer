@@ -10,10 +10,15 @@ require('./model/model').init(logger);
 require('./utils/mailer').setLogger(logger);
 require('./io/websocket').setLogger(logger);
 
+var flash 	 = require('connect-flash');
+
+
 // setting up the web server
 var express = require('express');
 var app = express();
 var path = require('path');
+var passport = require('passport');
+var passp=require('./routes/passport');
 
 // importing mongodb-based session store
 var MongoStore = require('connect-mongo')(express);
@@ -25,15 +30,22 @@ app.configure(function () {
     app.use(express.methodOverride());
     app.use(express.bodyParser());
     app.use(express.cookieParser());
+
+    app.use(passport.initialize());
+    app.use(flash());
+
+
 });
 
 app.configure('development', function () {
-    app.use(express.session({secret:'s3cr3t'}));
+    app.use(express.cookieSession({secret:'mySecret',store:express.session.MemoryStore({reapInterval: 60000 * 10})} ));
+    //app.use(express.session({secret:'s3cr3t'}));
     //app.use(express.static(__dirname + '/public'));
     app.use(express.static(path.join(__dirname, 'public')));
-
+    app.use(passport.session()); // persistent login sessions
     app.use(app.router);
     app.use(express.errorHandler({ dumpExceptions:true, showStack:true }));
+
 });
 
 app.configure('production', function () {
@@ -65,10 +77,19 @@ var routes = require('./routes');
 //app.get('/session/new/:sessionid?', routes.sites.newSession);
 //app.get('/session/:id', routes.sites.getSession);
 
-app.get('/', routes.sites.indexNew);
-app.get('/home',routes.sites.home);
+app.get('/',passp.checkAuth, routes.sites.indexNew);
 app.get('/session/new/:sessionid?', routes.sites.newSession);
 app.get('/session/:id', routes.sites.getSession);
+app.post('/session/delete',routes.sites.deleteSession);
+
+app.post('/user/invite',routes.services.inviteUserToSession);
+
+app.post('/signup', passp.signUp,routes.sites.loginfail);
+app.post('/login',passp.logIn,routes.sites.loginfail);
+app.get('/logout',passp.logOut);
+
+app.get('/home',routes.sites.getSessions);
+
 
 // services
 app.get('/notes/:sessionId', routes.services.getNotes);

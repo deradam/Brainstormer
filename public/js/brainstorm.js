@@ -8,6 +8,10 @@ $('document').ready(function () {
         window.location.replace('http://brainstormer.collide.info');
     } else {
         sessionStorage.sessionId = sessionId;
+
+
+
+
     }
     var desk = $('#desk');
 
@@ -116,6 +120,85 @@ $('document').ready(function () {
             }
         }
     });
+
+    $('.deleteSessionBtn').on('click', function(){
+
+        var sessioncounter=$('#mySessions').children().length-1;
+
+
+
+        var selectedSession=$(this).parent().parent().children('a').text();
+
+        if(selectedSession==sessionId){
+
+            $.post('/session/delete',{session:selectedSession});
+
+            $(this).parent().parent().remove();
+
+            sessioncounter=sessioncounter-1;
+
+            if(sessioncounter>0){
+
+                window.location.href="/session/"+$('#mySessions').children().eq(sessioncounter-1).children('a').text();
+            }else{
+                window.location.href="/session/new";
+            }
+
+
+
+        }else{
+
+            $.post('/session/delete',{session:selectedSession});
+
+            $(this).parent().parent().remove();
+
+            sessioncounter=sessioncounter-1;
+
+        }
+
+    });
+
+    $('#inviteBtn').on('click',function(){
+
+        var userMail=$('#userMail').val();
+
+        if(userMail){
+
+            $.post('/user/invite',{usermail:userMail,sessionID:sessionId}, function(response){
+                $('.alert').remove();
+                if(response==-3 && !$('#inviteUserLabel').next().attr('id')){
+                    $('.alert').remove();
+                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>already invited!</li>  </ul>  </div>');
+                }
+
+                if(response==1){
+                    $('.alert').remove();
+                    $('#inviteUserLabel').after('<div id="inviteUserSuccess" class="alert alert-success"> User invited!  </div>');
+
+                }
+
+            });
+
+        }else if(!userMail && !$('#inviteUserLabel').next().attr('id')){
+            $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>please set User E-Mail</li>  </ul>  </div>');
+
+        }
+    })
+
+    $('#closeInviteBtn').on('click',function(){
+
+        $('.alert').remove();
+
+    });
+
+    $('#abortInviteBtn').on('click',function(){
+
+        $('.alert').remove();
+
+    })
+
+
+
     $.get('/notes/' + sessionStorage.sessionId, function (notes) {
         $.each(notes, function (index, note) {
             var date = new Date(note.creation);
@@ -132,6 +215,10 @@ $('document').ready(function () {
     
     socket.on('connect', function() {
         socket.emit('join session', sessionId);
+    });
+
+    socket.on('session deleted',function(sessionID){
+        //alert("deleted");
     });
     
     socket.on('note added', function(note) {

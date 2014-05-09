@@ -8,6 +8,8 @@
         "log4js" : "0.6.x",
         "emailjs" : "0.3.x",
         "jade" : "0.35.x",
-        "connect-mongo" : "0.4.x"
+        "connect-mongo" : "0.4.x",
+        "ejs":"1.0.x",
+        "promised-io":"0.3.x"
 	}
 }

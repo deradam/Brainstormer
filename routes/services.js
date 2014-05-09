@@ -10,8 +10,15 @@ var models = require('../model/model');
 var Session = models.Session;
 var Note = models.Note;
 
+var User = require('../model/model.js').User;
+
 exports.getNotes = function (req, res, next) {
+
     var sessionId = req.params.sessionId;
+
+    var postsessid=req.body.sessionId;
+
+
     if (sessionId) {
         Session.findOne({uuid:sessionId}, function (error, session) {
             if (error) {
@@ -36,6 +43,8 @@ exports.getNotes = function (req, res, next) {
 };
 
 exports.postNewNote = function (req, res, next) {
+
+
     if (req.body) {
         var newNote = req.body;
         var note = new Note(newNote);
@@ -114,3 +123,50 @@ exports.deleteNote = function (req, res, next) {
         });
     }
 };
+
+exports.inviteUserToSession=function(req,res,next){
+    var usermail=req.body.usermail;
+    var sessionID=req.body.sessionID;
+
+    if(usermail && sessionID){
+
+        User.findOne({email:usermail},function(err,user){
+
+
+
+            if(!err){
+
+                if(user.invitations.indexOf(sessionID)==-1){
+
+                    user.invitations.push(sessionID, function(err){
+
+                        if(!err){
+
+
+
+                        }else{
+                            next(new Error('Cannt push invitation to Session' + sessionID+' for '+usermail ));
+                        }
+
+                    });
+
+                    user.save(function(err){
+
+                        if(!err){
+                            res.send("1");
+                        }else{
+                            next(new Error('Cant save invitation to Session' + sessionID+' for '+usermail ));
+                        }
+                    });
+
+                }else{
+
+                    console.log("nee");
+                    res.send("-3");
+                }
+
+            }
+        });
+
+    }
+}

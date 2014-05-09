@@ -33,6 +33,16 @@ exports.listen = function listen(server) {
     });
 }
 
+exports.sendInvitation=function(useremail,sessionID){
+
+
+}
+
+exports.deleteSession = function(sessionID){
+    console.log("deleting session");
+    io.sockets.emit('session deleted',sessionID);
+}
+
 exports.addNoteToSession = function(note) {
     io.sockets.in(note.sessionId).emit('note added', note);
 }

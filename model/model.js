@@ -13,6 +13,11 @@ var MongooseFilter = function (schema, options) {
         next();
     });
 
+    schema.pre('remove', function (next) {
+        this.filter();
+        next();
+    });
+
     schema.method('filter', function () {
         var self = this;
         var paths = schema.paths;
@@ -28,9 +33,27 @@ var MongooseFilter = function (schema, options) {
 
 };
 
+var user = new Schema({
+    username:String,
+    password: String,
+    email:String,
+    salt:Buffer,
+    publicSessions:[Sessions],
+    privateSessions:[Sessions],
+    invitations:[]
+
+});
+
 var Sessions = new Schema({
     uuid: String,
-    creation: Number
+    creation: Number,
+    name: String,
+    private: Number,
+    password:String,
+    owner: String,
+    users:[String],
+    read: [String]
+
 });
 
 var Notes = new Schema({
@@ -39,6 +62,8 @@ var Notes = new Schema({
     top: Number,
     left: Number,
     creation: Number,
+    creator: String,
+    editable: Number,
     color: String,
     sessionId: String
 });
@@ -62,4 +87,5 @@ exports.init = function (logger) {
 
 exports.Note = mongoose.model('notes', Notes);
 exports.Session = mongoose.model('sessions', Sessions);
+exports.User = mongoose.model('user',user);
 exports.ObjectId = mongoose.Types.ObjectId;
