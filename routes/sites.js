@@ -68,6 +68,8 @@ exports.newSession = function (req, res, next) {
 
 exports.getSessions=function(req,res,next){
 
+    res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+
     var username=req.session.user;
     var useremail=req.session.email;
     req.session.sessID=null;
@@ -77,11 +79,16 @@ exports.getSessions=function(req,res,next){
 
                 Session.find({$or:[{owner:useremail},{users:{$in:[useremail]}}]},function(err,sessions){
 
-                    if(sessions){
+                    var notes=[];
+                    var count=0;
 
-                        var notes=[];
-                        var count=0;
+
+                    if(sessions.length>0){
+
+
                         sessions.forEach(function(session){
+
+
 
                             Notes.find({sessionId:session.uuid}, function(err,note){
 
@@ -91,14 +98,16 @@ exports.getSessions=function(req,res,next){
 
                                 count=count+1;
                                 if(count==sessions.length){
-                                    console.log(notes);
-                                    res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
-                                    res.render('home',{username:req.session.user, sessions:sessions,countnotes:notes});
+
+                                    res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes});
                                 }
                             });
 
                         });
 
+
+                    }else{
+                        res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes});
 
                     }
 
