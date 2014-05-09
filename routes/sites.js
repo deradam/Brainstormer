@@ -136,6 +136,7 @@ exports.getSession = function (req, res, next) {
             } else {
                 if (session && !req.session.user) {
 
+                    req.session.sessID=sessionId;
                     res.render('brainstormNew');
 
                 }else if(session && req.session.user){

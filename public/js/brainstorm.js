@@ -218,7 +218,7 @@ $('document').ready(function () {
     });
 
     socket.on('session deleted',function(sessionID){
-        //alert("deleted");
+        alert("deleted");
     });
     
     socket.on('note added', function(note) {
