@@ -48,8 +48,9 @@ var Sessions = new Schema({
     uuid: String,
     creation: Number,
     name: String,
-    private: Number,
+    visibility: String,
     password:String,
+    salt:Buffer,
     owner: String,
     users:[String],
     read: [String]

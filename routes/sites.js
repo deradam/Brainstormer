@@ -8,6 +8,7 @@ var util = require('util');
 var ws = require('../io/websocket');
 var Q = require('q');
 var async = require('async');
+var crypt = require('crypto');
 
 var Session = require('../model/model.js').Session;
 var User = require('../model/model.js').User;
@@ -48,7 +49,11 @@ exports.home=function(req,res){
 };
 
 exports.newSession = function (req, res, next) {
+
     var sessionId = req.params.sessionid;
+
+
+
     if (sessionId) {
         Session.findOne({uuid:sessionId}, function (error, session) {
             if (error) {
@@ -72,6 +77,10 @@ exports.getSessions=function(req,res,next){
 
     var username=req.session.user;
     var useremail=req.session.email;
+    var errortext=[];
+    var errortype;
+    var errorsource;
+
     req.session.sessID=null;
 
 
@@ -92,22 +101,34 @@ exports.getSessions=function(req,res,next){
 
                             Notes.find({sessionId:session.uuid}, function(err,note){
 
-                                if(typeof note[0]!='undefined'){
-                                    notes.push({sessionid:note[0].sessionId,count:note.length});
+                                if(err){
+                                    errortext.push('Error counting Notes')
+                                    errortype=0;
+                                    errorsource=0;
+                                    req.flash('errortext',errortext);
+                                }else{
+
+                                    if(typeof note[0]!='undefined'){
+                                        notes.push({sessionid:note[0].sessionId,count:note.length});
+                                    }
+
+                                    count=count+1;
+                                    if(count==sessions.length){
+
+                                        res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
+                                    }
+
                                 }
 
-                                count=count+1;
-                                if(count==sessions.length){
 
-                                    res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes});
-                                }
                             });
 
                         });
 
 
                     }else{
-                        res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes});
+
+                        res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
 
                     }
 
@@ -137,7 +158,7 @@ exports.getSession = function (req, res, next) {
                 if (session && !req.session.user) {
 
                     req.session.sessID=sessionId;
-                    res.render('brainstormNew');
+                    res.render('brainstormNew',{identificationhash:req.session.identification});
 
                 }else if(session && req.session.user){
 
@@ -222,30 +243,46 @@ function findNewSessionIdAndCreate(req, res, next, sessionId) {
 };
 
 var createSessionAndRedirect = function createSessionAndRedirect(req, res, next, sessionId) {
-    var session = new Session();
-    var username=req.session.user;
-    req.session.sessID=sessionId;
 
+    var session = new Session();
+    var email=req.session.email;
+    var sessionpassword=req.body.sessionpassword;
+
+
+    var errortext=[];
+    var errortype;
+    var errorsource;
+
+    req.session.sessID=sessionId;
+    console.log(req.body);
 
     session.uuid = sessionId;
     session.creation = Date.now();
-    session.users.push("test@test");
+    session.title=req.body.sessiontitle;
+    session.visibility=req.body.visibility;
 
 
+    if(email){
 
-
-    if(username){
-
-
-        //User.update({username:username },{'$push':{'mySessions.$':session}});
-        User.findOne({username:username},function (error, user) {
+        User.findOne({email:email},function (error, user) {
             if (error) {
-                next(new Error('Error during finding User ' + username));
+                next(new Error('Error during finding User ' + user));
             } else {
+
+                if(sessionpassword){
+
+                    var salt = crypt.randomBytes(256);
+                    var hash = crypt.createHmac("sha1",salt).update(sessionpassword).digest("hex");
+                    session.password=hash;
+                    session.salt=salt;
+
+                }
 
                 session.owner=user.email;
 
-                user.save();
+                user.save(function(err){
+                    console.log('Error setting Owner to Session ' + util.inspect(session));
+                });
 
                 session.post('save', function (next) {
 
@@ -254,26 +291,25 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
                 });
                 session.save(function (error) {
                     if (!error) {
+
                         console.log('Successfully created a new session ' + util.inspect(session));
 
-                        Session.find({users:{$in:["kulli"]}}, function(err,data){
-
-                        });
                     } else {
                         next(new Error('Cannot create a new session ' + util.inspect(error)));
                     }
                 });
-
-
-
 
             }
         });
 
     }else{
 
+        var salt = crypt.randomBytes(256);
+        var identificationhash = crypt.createHmac("sha1",salt).update(session.uuid).digest("hex");
+
         session.post('save', function (next) {
 
+            req.session.identification=identificationhash;
             res.redirect('/session/' + session.uuid);
             //mailer.sendMail(req.ip, session.uuid);
         });

@@ -78,7 +78,7 @@ var routes = require('./routes');
 //app.get('/session/:id', routes.sites.getSession);
 
 app.get('/',passp.checkAuth, routes.sites.indexNew);
-app.get('/session/new/:sessionid?', routes.sites.newSession);
+app.post('/session/new/:sessionid?', routes.sites.newSession);
 app.get('/session/:id', routes.sites.getSession);
 app.post('/session/delete',routes.sites.deleteSession);
 
