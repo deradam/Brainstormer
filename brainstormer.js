@@ -81,6 +81,9 @@ app.get('/',passp.checkAuth, routes.sites.indexNew);
 app.post('/session/new/:sessionid?', routes.sites.newSession);
 app.get('/session/:id', routes.sites.getSession);
 app.post('/session/delete',routes.sites.deleteSession);
+app.post('/session/leave',routes.sites.leaveSession);
+app.get('/password',routes.sites.passwordpage);
+app.post('/checkpermission',routes.sites.check);
 
 app.post('/user/invite',routes.services.inviteUserToSession);
 

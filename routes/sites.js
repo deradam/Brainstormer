@@ -19,6 +19,13 @@ exports.index = function(req, res){
     res.render('index');
 };
 
+exports.passwordpage=function(req,res){
+
+    res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+
+    res.render('password');
+}
+
 exports.loginfail=function(req,res,next){
 
     res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
@@ -52,8 +59,6 @@ exports.newSession = function (req, res, next) {
 
     var sessionId = req.params.sessionid;
 
-
-
     if (sessionId) {
         Session.findOne({uuid:sessionId}, function (error, session) {
             if (error) {
@@ -83,6 +88,8 @@ exports.getSessions=function(req,res,next){
 
     req.session.sessID=null;
 
+    console.log(req.body);
+
 
     if(username){
 
@@ -91,13 +98,9 @@ exports.getSessions=function(req,res,next){
                     var notes=[];
                     var count=0;
 
-
                     if(sessions.length>0){
 
-
                         sessions.forEach(function(session){
-
-
 
                             Notes.find({sessionId:session.uuid}, function(err,note){
 
@@ -107,14 +110,13 @@ exports.getSessions=function(req,res,next){
                                     errorsource=0;
                                     req.flash('errortext',errortext);
                                 }else{
-
                                     if(typeof note[0]!='undefined'){
                                         notes.push({sessionid:note[0].sessionId,count:note.length});
                                     }
 
                                     count=count+1;
-                                    if(count==sessions.length){
 
+                                    if(count==sessions.length){
                                         res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
                                     }
 
@@ -127,15 +129,10 @@ exports.getSessions=function(req,res,next){
 
 
                     }else{
-
                         res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
-
                     }
 
-
                 });
-
-
     }else{
         res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage')});
 
@@ -148,37 +145,40 @@ exports.getSession = function (req, res, next) {
     res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
 
     var sessionId = req.params.id;
-
+    var useremail= req.session.email;
+    var errortext=[];
+    var errortype;
+    var errorsource;
 
     if (sessionId) {
+
         Session.findOne({uuid:sessionId}, function (error, session) {
+
             if (error) {
+
                 next(new Error('Error during finding session with id ' + sessionId));
+
             } else {
-                if (session && !req.session.user) {
 
-                    req.session.sessID=sessionId;
-                    res.render('brainstormNew',{identificationhash:req.session.identification});
+                req.session.sessID=sessionId;
 
-                }else if(session && req.session.user){
+                if(session.password){
 
-                    req.session.sessID=sessionId;
+                    if(req.session.sesspass==session.password){
+                        checkLoginAndRender(req,res,session,useremail);
+                    }else{
+                        res.render('password',{errortext:errortext,errortype:errortype,errorsource:errorsource});
+                    }
 
-                    Session.find({$or:[{owner:req.session.email},{users:{$in:[req.session.email]}}]},function(err,sessions){
-
-
-                        if(sessions){
-
-                            res.render('session',{username:req.session.user, sessions:sessions, errortext:req.flash('errMessage'), loadedsession:sessionId});
-                        }
-                    });
-
-
-                } else {
-                    res.redirect('/');
+                }else{
+                    checkLoginAndRender(req,res,session,useremail);
                 }
+
             }
+
         });
+
+
     } else {
 
         res.redirect('/');
@@ -187,9 +187,7 @@ exports.getSession = function (req, res, next) {
 
 exports.deleteSession=function(req,res,next){
 
-
     var data=req.body;
-
 
     Session.findOne({uuid:data.session}, function(err,session){
 
@@ -220,6 +218,50 @@ exports.deleteSession=function(req,res,next){
     });
 
 
+
+};
+
+exports.leaveSession=function(req,res,next){
+
+    var sessionID=req.body.session;
+
+    if(sessionID){
+        Session.findOne({uuid:sessionID},function(err,session){
+
+            if(session){
+                var useremail=req.session.email;
+                var index=session.users.indexOf(useremail);
+
+                session.users.slice(index);
+            }
+
+        });
+    }
+
+};
+
+function checkLoginAndRender(req,res,session,useremail){
+
+    if (session && !useremail) {
+
+
+        res.render('brainstormNew',{identificationhash:req.session.identification});
+
+    }else if(session && useremail){
+
+
+        var index=session.users.indexOf(useremail);
+
+        if(index==-1){
+            session.users.push(useremail);
+            session.save();
+        }
+
+        res.render('session',{username:req.session.user, errortext:req.flash('errMessage'), loadedsession:session.uuid});
+
+    } else {
+        res.redirect('/');
+    }
 
 };
 
@@ -276,6 +318,8 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
                     session.password=hash;
                     session.salt=salt;
 
+                    req.session.sesspass=hash;
+
                 }
 
                 session.owner=user.email;
@@ -320,6 +364,56 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
                 next(new Error('Cannot create a new session ' + util.inspect(error)));
             }
         });
+
+    }
+
+};
+
+exports.check=function(req,res){
+
+    res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+
+    console.log(req.body);
+
+    var sesspassword=req.body.sessionpass;
+    var sesspass=req.session.sesspass;
+    var sessionID=req.session.sessID;
+    var useremail=req.session.email;
+    var errortext=[];
+    var errortype;
+    var errorsource;
+
+    if(sesspassword){
+
+        Session.findOne({uuid:sessionID},function(err,session){
+
+            var salt=session.salt;
+            var hash=crypt.createHmac("sha1",salt).update(sesspassword).digest("hex");
+
+            if(session.password==hash){
+
+                req.session.sesspass=session.password;
+                res.redirect('/session/'+sessionID);
+
+            }else{
+
+
+                errortext.push('Wrong Password!');
+                errortype=0;
+                errorsource=0;
+
+                res.render('password',{errortext:errortext,errortype:errortype,errorsource:errorsource});
+
+            }
+
+        });
+
+    }
+
+    if(req.body.backBtn){
+
+        req.session.sessID=null;
+        res.redirect('/');
 
     }
 
