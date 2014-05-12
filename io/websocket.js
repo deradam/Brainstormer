@@ -17,6 +17,8 @@ exports.listen = function listen(server) {
     io.set('log level', 1);
 
     io.sockets.on('connection', function (socket) {
+
+
         logger.debug(socket.id + ' connected to the server.');
 
         var session;

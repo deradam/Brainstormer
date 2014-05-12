@@ -19,12 +19,7 @@ exports.index = function(req, res){
     res.render('index');
 };
 
-exports.passwordpage=function(req,res){
 
-    res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
-
-    res.render('password');
-}
 
 exports.loginfail=function(req,res,next){
 
@@ -39,11 +34,16 @@ exports.loginfail=function(req,res,next){
 
 };
 
+exports.permissionFail=function(req,res,next){
+
+    res.render('permissionfail');
+};
+
 exports.indexNew=function(req,res){
 
-   res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+    res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
 
-   res.render('indexNew', { message: req.flash('signupMessage') });
+    res.render('indexNew', { message: req.flash('signupMessage') });
 };
 
 exports.brainstormNew=function(req,res){
@@ -88,51 +88,50 @@ exports.getSessions=function(req,res,next){
 
     req.session.sessID=null;
 
-    console.log(req.body);
 
 
     if(username){
 
-                Session.find({$or:[{owner:useremail},{users:{$in:[useremail]}}]},function(err,sessions){
+        Session.find({$or:[{owner:useremail},{users:{$in:[useremail]}}]},function(err,sessions){
 
-                    var notes=[];
-                    var count=0;
+            var notes=[];
+            var count=0;
 
-                    if(sessions.length>0){
+            if(sessions.length>0){
 
-                        sessions.forEach(function(session){
+                sessions.forEach(function(session){
 
-                            Notes.find({sessionId:session.uuid}, function(err,note){
+                    Notes.find({sessionId:session.uuid}, function(err,note){
 
-                                if(err){
-                                    errortext.push('Error counting Notes')
-                                    errortype=0;
-                                    errorsource=0;
-                                    req.flash('errortext',errortext);
-                                }else{
-                                    if(typeof note[0]!='undefined'){
-                                        notes.push({sessionid:note[0].sessionId,count:note.length});
-                                    }
+                        if(err){
+                            errortext.push('Error counting Notes')
+                            errortype=0;
+                            errorsource=0;
+                            req.flash('errortext',errortext);
+                        }else{
+                            if(typeof note[0]!='undefined'){
+                                notes.push({sessionid:note[0].sessionId,count:note.length});
+                            }
 
-                                    count=count+1;
+                            count=count+1;
 
-                                    if(count==sessions.length){
-                                        res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
-                                    }
+                            if(count==sessions.length){
+                                res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
+                            }
 
-                                }
-
-
-                            });
-
-                        });
+                        }
 
 
-                    }else{
-                        res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
-                    }
+                    });
 
                 });
+
+
+            }else{
+                res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
+            }
+
+        });
     }else{
         res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage')});
 
@@ -162,16 +161,17 @@ exports.getSession = function (req, res, next) {
 
                 req.session.sessID=sessionId;
 
+
                 if(session.password){
 
                     if(req.session.sesspass==session.password){
-                        checkLoginAndRender(req,res,session,useremail);
+                        checkVisibility(req,res,session,useremail);
                     }else{
                         res.render('password',{errortext:errortext,errortype:errortype,errorsource:errorsource});
                     }
 
                 }else{
-                    checkLoginAndRender(req,res,session,useremail);
+                    checkVisibility(req,res,session,useremail);
                 }
 
             }
@@ -217,8 +217,6 @@ exports.deleteSession=function(req,res,next){
 
     });
 
-
-
 };
 
 exports.leaveSession=function(req,res,next){
@@ -232,10 +230,45 @@ exports.leaveSession=function(req,res,next){
                 var useremail=req.session.email;
                 var index=session.users.indexOf(useremail);
 
-                session.users.slice(index);
+                session.users.splice(index);
+
+                session.save();
             }
 
         });
+    }
+
+};
+
+function checkVisibility(req,res,session,useremail){
+
+    var userindex;
+    var errortext=[];
+
+    if(session.visibility=='Private'){
+
+        userindex=session.users.indexOf(useremail);
+
+        if(userindex!=-1 || session.owner==useremail){
+
+
+            checkLoginAndRender(req,res,session,useremail);
+
+        }else if(!useremail){
+
+            errortext.push('You have to Login first!');
+
+            res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage')});
+
+        }else{
+            req.session.sessID=null;
+            res.render('permissionfail');
+        }
+
+    }else{
+
+        checkLoginAndRender(req,res,session,useremail);
+
     }
 
 };
@@ -244,6 +277,9 @@ function checkLoginAndRender(req,res,session,useremail){
 
     if (session && !useremail) {
 
+        //session.users.push('Anonym');
+
+        //session.save();
 
         res.render('brainstormNew',{identificationhash:req.session.identification});
 
@@ -252,7 +288,8 @@ function checkLoginAndRender(req,res,session,useremail){
 
         var index=session.users.indexOf(useremail);
 
-        if(index==-1){
+
+        if(index==-1 && useremail!=session.owner){
             session.users.push(useremail);
             session.save();
         }
@@ -290,31 +327,35 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
     var email=req.session.email;
     var sessionpassword=req.body.sessionpassword;
 
-
     var errortext=[];
     var errortype;
     var errorsource;
+    var salt;
+    var identificationhash;
 
     req.session.sessID=sessionId;
-    console.log(req.body);
 
     session.uuid = sessionId;
     session.creation = Date.now();
-    session.title=req.body.sessiontitle;
+    session.name=req.body.sessiontitle;
     session.visibility=req.body.visibility;
 
 
     if(email){
 
         User.findOne({email:email},function (error, user) {
+
             if (error) {
-                next(new Error('Error during finding User ' + user));
+
+                next(new Error('Error finding User ' + user));
+
             } else {
 
                 if(sessionpassword){
 
                     var salt = crypt.randomBytes(256);
                     var hash = crypt.createHmac("sha1",salt).update(sessionpassword).digest("hex");
+
                     session.password=hash;
                     session.salt=salt;
 
@@ -325,70 +366,72 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
                 session.owner=user.email;
 
                 user.save(function(err){
-                    console.log('Error setting Owner to Session ' + util.inspect(session));
-                });
 
-                session.post('save', function (next) {
-
-                    res.redirect('/session/' + session.uuid);
-                    //mailer.sendMail(req.ip, session.uuid);
-                });
-                session.save(function (error) {
-                    if (!error) {
-
-                        console.log('Successfully created a new session ' + util.inspect(session));
-
-                    } else {
-                        next(new Error('Cannot create a new session ' + util.inspect(error)));
+                    if(err){
+                        console.log('Error setting Owner to Session ' + util.inspect(session));
                     }
+
                 });
+
+                saveSession(req,res,next,session,identificationhash);
 
             }
         });
 
     }else{
 
-        var salt = crypt.randomBytes(256);
-        var identificationhash = crypt.createHmac("sha1",salt).update(session.uuid).digest("hex");
+        salt= crypt.randomBytes(256);
+        identificationhash = crypt.createHmac("sha1",salt).update(session.uuid).digest("hex");
 
-        session.post('save', function (next) {
+        saveSession(req,res,next,session,identificationhash);
 
-            req.session.identification=identificationhash;
-            res.redirect('/session/' + session.uuid);
-            //mailer.sendMail(req.ip, session.uuid);
-        });
-        session.save(function (error) {
-            if (!error) {
-                console.log('Successfully created a new session ' + util.inspect(session));
-            } else {
-                next(new Error('Cannot create a new session ' + util.inspect(error)));
-            }
-        });
 
     }
 
 };
 
-exports.check=function(req,res){
+function saveSession(req,res,next,session,identificationhash){
+
+    session.post('save', function (next) {
+
+        req.session.identification=identificationhash;
+        res.redirect('/session/' + session.uuid);
+        //mailer.sendMail(req.ip, session.uuid);
+    });
+    session.save(function (error) {
+        if (!error) {
+            console.log('Successfully created a new session ' + util.inspect(session));
+        } else {
+            next(new Error('Cannot create a new session ' + util.inspect(error)));
+        }
+    });
+
+}
+
+exports.checkPasswordAndRedirect=function(req,res){
 
     res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
 
-    console.log(req.body);
-
     var sesspassword=req.body.sessionpass;
+    var passsubmitBtn=req.body.submitSessPassBtn;
+    var backhomeBtn=req.body.backBtn;
+
     var sesspass=req.session.sesspass;
     var sessionID=req.session.sessID;
     var useremail=req.session.email;
+
     var errortext=[];
     var errortype;
     var errorsource;
+    var salt;
+    var hash;
 
-    if(sesspassword){
+    if(sesspassword && passsubmitBtn){
 
         Session.findOne({uuid:sessionID},function(err,session){
 
-            var salt=session.salt;
-            var hash=crypt.createHmac("sha1",salt).update(sesspassword).digest("hex");
+            salt=session.salt;
+            hash=crypt.createHmac("sha1",salt).update(sesspassword).digest("hex");
 
             if(session.password==hash){
 
@@ -396,7 +439,6 @@ exports.check=function(req,res){
                 res.redirect('/session/'+sessionID);
 
             }else{
-
 
                 errortext.push('Wrong Password!');
                 errortype=0;
@@ -408,12 +450,19 @@ exports.check=function(req,res){
 
         });
 
-    }
-
-    if(req.body.backBtn){
+    }else if(backhomeBtn){
 
         req.session.sessID=null;
+
         res.redirect('/');
+
+    }else{
+
+        errortext.push('Pls enter the Password!');
+        errortype=0;
+        errorsource=0;
+
+        res.render('password',{errortext:errortext,errortype:errortype,errorsource:errorsource});
 
     }
 
