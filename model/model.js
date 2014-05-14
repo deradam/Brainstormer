@@ -40,7 +40,8 @@ var user = new Schema({
     salt:Buffer,
     publicSessions:[Sessions],
     privateSessions:[Sessions],
-    invitations:[]
+    invitations:[],
+    unread:Number
 
 });
 

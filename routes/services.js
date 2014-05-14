@@ -124,49 +124,120 @@ exports.deleteNote = function (req, res, next) {
     }
 };
 
+
 exports.inviteUserToSession=function(req,res,next){
     var usermail=req.body.usermail;
     var sessionID=req.body.sessionID;
+    var invitation={};
+
 
     if(usermail && sessionID){
 
         User.findOne({email:usermail},function(err,user){
 
-
-
             if(!err){
 
-                if(user.invitations.indexOf(sessionID)==-1){
+                Session.findOne({uuid:sessionID},function(err,session){
 
-                    user.invitations.push(sessionID, function(err){
 
-                        if(!err){
+                    if(user){
 
+                        if(user.invitations.indexOf(sessionID)==-1 && session.users.indexOf(usermail)==-1){
+
+                            user.invitations.push(sessionID);
+
+                            user.unread=user.unread+1;
+
+                            user.save(function(err){
+
+                                if(!err){
+                                    invitation={user:user.email,session:session.uuid};
+                                    ws.sendInvitation(invitation);
+                                    res.send('1');
+                                }else{
+                                    next(new Error('Cant save invitation to Session' + sessionID+' for '+usermail ));
+                                }
+                            });
 
 
                         }else{
-                            next(new Error('Cannt push invitation to Session' + sessionID+' for '+usermail ));
+
+                            console.log("nee");
+                            res.send('-3');
                         }
+                    }else{
+                        res.send('-2')
+                    }
 
-                    });
 
-                    user.save(function(err){
-
-                        if(!err){
-                            res.send("1");
-                        }else{
-                            next(new Error('Cant save invitation to Session' + sessionID+' for '+usermail ));
-                        }
-                    });
-
-                }else{
-
-                    console.log("nee");
-                    res.send("-3");
-                }
+                });
 
             }
         });
+
+    }
+};
+
+exports.inviteResponse=function(req,res,next){
+
+    var sessionId=req.body.session;
+    var accepted=req.body.accepted;
+    var user= req.session.email;
+
+    console.log(accepted+sessionId+user);
+
+    if(sessionId){
+
+        Session.findOne({uuid:sessionId},function(err,session){
+
+            if(err){
+                console.log('Error finding Session: '+session);
+            }else{
+
+                User.findOne({email:user},function(err,user){
+                    if(err){
+                        console.log('Error finding User: '+user);
+                    }else if(session && accepted){
+
+                        session.users.push(user.email);
+                        user.invitations.splice(user.invitations.indexOf(sessionId),1);
+                        user.save(function(err){
+                            session.save();
+                            res.send('1');
+                        });
+
+                    }else if(!session || !accepted){
+
+                        user.invitations.splice(user.invitations.indexOf(sessionId),1);
+
+                        user.save(function(err){
+                            res.send('-1');
+                        });
+
+                    }
+                });
+
+            }
+
+        });
+    }
+
+};
+
+exports.resetUnreadInvitations=function(req,res){
+
+    var reset=req.body.reset;
+    var user=req.session.email;
+
+    if(reset){
+
+        User.findOne({email:user},function(err,user){
+            user.unread=0;
+            user.save(function(err){
+                res.send('ok');
+            });
+        });
+
 
     }
 }

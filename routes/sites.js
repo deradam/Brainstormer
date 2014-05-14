@@ -88,48 +88,52 @@ exports.getSessions=function(req,res,next){
 
     req.session.sessID=null;
 
+    if(useremail){
 
+        User.findOne({email:useremail},function(err,user){
 
-    if(username){
+            Session.find({$or:[{owner:useremail},{users:{$in:[useremail]}}]},function(err,sessions){
 
-        Session.find({$or:[{owner:useremail},{users:{$in:[useremail]}}]},function(err,sessions){
+                var notes=[];
+                var count=0;
 
-            var notes=[];
-            var count=0;
+                if(sessions.length>0){
 
-            if(sessions.length>0){
+                    sessions.forEach(function(session){
 
-                sessions.forEach(function(session){
+                        console.log("hierhaaa");
+                        Notes.find({sessionId:session.uuid}, function(err,note){
 
-                    Notes.find({sessionId:session.uuid}, function(err,note){
+                            if(err){
+                                errortext.push('Error counting Notes');
+                                errortype=0;
+                                errorsource=0;
+                                req.flash('errortext',errortext);
+                            }else{
+                                if(typeof note[0]!='undefined'){
+                                    notes.push({sessionid:note[0].sessionId,count:note.length});
+                                }
 
-                        if(err){
-                            errortext.push('Error counting Notes')
-                            errortype=0;
-                            errorsource=0;
-                            req.flash('errortext',errortext);
-                        }else{
-                            if(typeof note[0]!='undefined'){
-                                notes.push({sessionid:note[0].sessionId,count:note.length});
+                                count=count+1;
+
+                                if(count==sessions.length){
+                                    res.render('home',{username:req.session.user,useremail:req.session.email,invitations:user.invitations,unread:user.unread,activeSession:req.session.sessID, sessions:sessions, countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
+                                }
+
                             }
 
-                            count=count+1;
 
-                            if(count==sessions.length){
-                                res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
-                            }
-
-                        }
-
+                        });
 
                     });
 
-                });
+                }else{
 
+                    res.render('home',{username:req.session.user,useremail:req.session.email,invitations:user.invitations,activeSession:req.session.sessID,unread:user.unread, sessions:[], countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
 
-            }else{
-                res.render('home',{username:req.session.user,useremail:req.session.email, sessions:sessions,countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
-            }
+                }
+
+            });
 
         });
     }else{
@@ -157,7 +161,7 @@ exports.getSession = function (req, res, next) {
 
                 next(new Error('Error during finding session with id ' + sessionId));
 
-            } else {
+            } else if(session){
 
                 req.session.sessID=sessionId;
 
@@ -165,14 +169,19 @@ exports.getSession = function (req, res, next) {
                 if(session.password){
 
                     if(req.session.sesspass==session.password){
-                        checkVisibility(req,res,session,useremail);
+                        checkVisibilityAndInvitation(req,res,session,useremail);
                     }else{
                         res.render('password',{errortext:errortext,errortype:errortype,errorsource:errorsource});
                     }
 
                 }else{
-                    checkVisibility(req,res,session,useremail);
+                    checkVisibilityAndInvitation(req,res,session,useremail);
                 }
+
+            }else{
+
+                errortext.push("Session doesn't exist anymore")
+                res.render('permissionfail',{errortext:errortext});
 
             }
 
@@ -240,30 +249,43 @@ exports.leaveSession=function(req,res,next){
 
 };
 
-function checkVisibility(req,res,session,useremail){
+function checkVisibilityAndInvitation(req,res,session,useremail){
 
     var userindex;
+    var invitation;
     var errortext=[];
 
     if(session.visibility=='Private'){
 
-        userindex=session.users.indexOf(useremail);
+        User.findOne({email:useremail},function(err,user){
 
-        if(userindex!=-1 || session.owner==useremail){
+            if(user){
 
 
-            checkLoginAndRender(req,res,session,useremail);
+                userindex=session.users.indexOf(useremail);
+                invitation=user.invitations.indexOf(session.uuid);
 
-        }else if(!useremail){
+                if(userindex!=-1 || session.owner==useremail || invitation!=-1){
 
-            errortext.push('You have to Login first!');
+                    user.invitations.splice(invitation);
+                    user.save();
+                    checkLoginAndRender(req,res,session,useremail);
 
-            res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage')});
+                }else{
+                    req.session.sessID=null;
+                    errortext.push('You have no permissons to access the Session.');
+                    res.render('permissionfail',{errortext:errortext});
+                }
 
-        }else{
-            req.session.sessID=null;
-            res.render('permissionfail');
-        }
+            }else{
+                errortext.push('You have to Login first!');
+
+                res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage')});
+            }
+
+        });
+
+
 
     }else{
 
@@ -294,7 +316,7 @@ function checkLoginAndRender(req,res,session,useremail){
             session.save();
         }
 
-        res.render('session',{username:req.session.user, errortext:req.flash('errMessage'), loadedsession:session.uuid});
+        res.render('session',{username:req.session.user, usermail:req.session.email, errortext:req.flash('errMessage'), loadedsession:session.uuid});
 
     } else {
         res.redirect('/');

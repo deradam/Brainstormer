@@ -10,21 +10,28 @@ exports.setLogger = function(_logger) {
     logger = _logger;
 }
 
-
+var clients=[];
 exports.listen = function listen(server) {
     // setting up socket.io
     io = require('socket.io').listen(server);
     io.set('log level', 1);
 
+
+
     io.sockets.on('connection', function (socket) {
 
+        var client={};
 
         logger.debug(socket.id + ' connected to the server.');
 
         var session;
 
-        socket.on('join session', function (_session) {
-            session = _session;
+        socket.on('join session', function (data) {
+
+            client={user:data.user,socketId:socket.id};
+            clients.push(client);
+            console.log(clients);
+            session = data.session;
             socket.join(session);
             console.debug('client ' + socket.id + ' joined session ' + session);
         });
@@ -32,16 +39,31 @@ exports.listen = function listen(server) {
         socket.on('update note', function (note) {
             socket.broadcast.to(session).emit('note updated', note);
         });
+
+        socket.on('disconnect' ,function(){
+
+            for(var i=0;i<clients.length;i++){
+                if(clients[i].user==client.user){
+                    clients.splice(clients.indexOf(client),1);
+                }
+            }
+        });
     });
 }
 
-exports.sendInvitation=function(useremail,sessionID){
+exports.sendInvitation=function(invitation){
 
+    console.log(invitation);
+    for(var i=0;i<clients.length;i++){
+        if(clients[i].user==invitation.user){
+            io.sockets.socket(clients[i].socketId).emit('invitation incoming',invitation);
+        }
+    }
 
 }
 
 exports.deleteSession = function(sessionID){
-    console.log("deleting session");
+
     io.sockets.emit('session deleted',sessionID);
 }
 

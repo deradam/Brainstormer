@@ -86,10 +86,11 @@ app.post('/session/leave',routes.sites.leaveSession);
 
 app.post('/checkpermission',routes.sites.checkPasswordAndRedirect);
 app.post('/user/invite',routes.services.inviteUserToSession);
+app.post('/user/inviteresponse',routes.services.inviteResponse);
 app.post('/signup', passp.signUp,routes.sites.loginfail);
 app.post('/login',passp.logIn,routes.sites.loginfail);
 app.get('/logout',passp.logOut);
-
+app.post('/reset',routes.services.resetUnreadInvitations);
 app.get('/home',routes.sites.getSessions);
 
 

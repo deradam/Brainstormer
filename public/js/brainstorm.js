@@ -168,8 +168,14 @@ $('document').ready(function () {
                 $('.alert').remove();
                 if(response==-3 && !$('#inviteUserLabel').next().attr('id')){
                     $('.alert').remove();
-                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>already invited!</li>  </ul>  </div>');
+                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger alert-dismissable"> <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>Something went wrong: <ul> <li>already invited!</li>  </ul>  </div>');
                 }
+
+                if(response==-2 && !$('#inviteUserLabel').next().attr('id')){
+                    $('.alert').remove();
+                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger alert-dismissable"> <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>Something went wrong: <ul> <li>User doesnt exist!</li>  </ul>  </div>');
+                }
+
 
                 if(response==1){
                     $('.alert').remove();
@@ -214,7 +220,8 @@ $('document').ready(function () {
     socket = io.connect('http://' + window.location.hostname + (window.location.port === '' ? '' : ':' + window.location.port));
     
     socket.on('connect', function() {
-        socket.emit('join session', sessionId);
+        var data={user:$('#usermail').val(),session:sessionId};
+        socket.emit('join session', data);
     });
 
     socket.on('session deleted',function(sessionID){
