@@ -151,7 +151,7 @@ exports.inviteUserToSession=function(req,res,next){
                             user.save(function(err){
 
                                 if(!err){
-                                    invitation={user:user.email,session:session.uuid};
+                                    invitation={user:user.email,session:session.uuid,unread:user.unread};
                                     ws.sendInvitation(invitation);
                                     res.send('1');
                                 }else{
