@@ -184,34 +184,61 @@ exports.inviteResponse=function(req,res,next){
     var accepted=req.body.accepted;
     var user= req.session.email;
 
-    console.log(accepted+sessionId+user);
+    console.log(req.body);
 
     if(sessionId){
 
         Session.findOne({uuid:sessionId},function(err,session){
+
 
             if(err){
                 console.log('Error finding Session: '+session);
             }else{
 
                 User.findOne({email:user},function(err,user){
+
                     if(err){
                         console.log('Error finding User: '+user);
-                    }else if(session && accepted){
+                    }else if(accepted=='true' && session){
 
+                        console.log("einladung akzeptiert");
                         session.users.push(user.email);
                         user.invitations.splice(user.invitations.indexOf(sessionId),1);
                         user.save(function(err){
-                            session.save();
-                            res.send('1');
+
+                            session.save(function(err){
+
+                                var hasPassword;
+
+                                Note.find({sessionId:session.uuid},function(err,notes){
+
+                                    if(session.password){
+                                        hasPassword=true;
+                                    }else{
+                                        hasPassword=false;
+                                    }
+
+                                    res.send({session:session.uuid,Owner:session.owner,visibility:session.visibility,password:hasPassword,members:session.users.length,creation:session.creation,posts:notes.length});
+
+                                });
+                            });
+
                         });
 
-                    }else if(!session || !accepted){
+                    }else if( accepted=='false'){
 
+                        console.log("einladung nicht akzeptiert");
                         user.invitations.splice(user.invitations.indexOf(sessionId),1);
 
                         user.save(function(err){
                             res.send('-1');
+                        });
+
+                    }else{
+                        user.invitations.splice(user.invitations.indexOf(sessionId),1);
+
+                        user.save(function(err){
+                            res.send('-2');
                         });
 
                     }

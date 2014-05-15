@@ -86,7 +86,6 @@ exports.getSessions=function(req,res,next){
     var errortype;
     var errorsource;
 
-    req.session.sessID=null;
 
     if(useremail){
 
@@ -101,7 +100,6 @@ exports.getSessions=function(req,res,next){
 
                     sessions.forEach(function(session){
 
-                        console.log("hierhaaa");
                         Notes.find({sessionId:session.uuid}, function(err,note){
 
                             if(err){
@@ -180,7 +178,8 @@ exports.getSession = function (req, res, next) {
 
             }else{
 
-                errortext.push("Session doesn't exist anymore")
+                errortext.push("Session doesn't exist anymore.")
+                req.session.sessID=null;
                 res.render('permissionfail',{errortext:errortext});
 
             }
@@ -225,6 +224,49 @@ exports.deleteSession=function(req,res,next){
         }
 
     });
+
+};
+
+exports.deleteAllSessions=function(req,res,next){
+
+    var user=req.session.email;
+    var deleteAll=req.body.deleteAll;
+
+
+    if(user && deleteAll=='true'){
+        Session.find({$or:[{owner:user},{users:{$in:[user]}}]},function(err,sessions){
+
+            var count=0;
+
+            if(sessions.length>0){
+
+                sessions.forEach(function(session){
+
+                    if(session.owner==user){
+
+                        session.remove(function(err){
+
+                            Notes.find({sessionId:session.uuid}).remove(function(err){
+
+                            });
+                        });
+                    }else if(session.users.indexOf(user)!=-1){
+                        session.users.splice(session.users.indexOf(user),1);
+                        session.save();
+                    }
+
+                    if(count==sessions.length){
+                        res.send('1');
+                    }
+
+                });
+
+            }else{
+                res.send('-1');
+            }
+
+        });
+    }
 
 };
 
