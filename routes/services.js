@@ -128,6 +128,7 @@ exports.deleteNote = function (req, res, next) {
 exports.inviteUserToSession=function(req,res,next){
     var usermail=req.body.usermail;
     var sessionID=req.body.sessionID;
+    var permission=req.body.permission;
     var invitation={};
 
 
@@ -142,21 +143,32 @@ exports.inviteUserToSession=function(req,res,next){
 
                     if(user){
 
-                        if(user.invitations.indexOf(sessionID)==-1 && session.users.indexOf(usermail)==-1){
+                        if(user.invitations.indexOf(session.uuid)==-1 && session.users.indexOf(user.email)==-1){
 
-                            user.invitations.push(sessionID);
+                            if(permission=='Read'){
+                                session.read.push(user.email);
+                            }
+
+                            if(user.invitations.indexOf(user.email)==-1){
+                                user.invitations.push(session.uuid);
+                            }
+
 
                             user.unread=user.unread+1;
 
                             user.save(function(err){
 
-                                if(!err){
-                                    invitation={user:user.email,session:session.uuid,unread:user.unread};
-                                    ws.sendInvitation(invitation);
-                                    res.send('1');
-                                }else{
-                                    next(new Error('Cant save invitation to Session' + sessionID+' for '+usermail ));
-                                }
+                                session.save(function(err){
+                                    if(!err){
+                                        invitation={user:user.email,session:session.uuid,unread:user.unread};
+                                        ws.sendInvitation(invitation);
+                                        res.send('1');
+                                    }else{
+                                        next(new Error('Cant save invitation to Session' + sessionID+' for '+usermail ));
+                                    }
+
+                                });
+
                             });
 
 
@@ -209,6 +221,7 @@ exports.inviteResponse=function(req,res,next){
                             session.save(function(err){
 
                                 var hasPassword;
+                                var permission;
 
                                 Note.find({sessionId:session.uuid},function(err,notes){
 
@@ -218,8 +231,14 @@ exports.inviteResponse=function(req,res,next){
                                         hasPassword=false;
                                     }
 
-                                    res.send({session:session.uuid,Owner:session.owner,visibility:session.visibility,password:hasPassword,members:session.users.length,creation:session.creation,posts:notes.length});
+                                    if(session.read.indexOf(user.email)==-1){
+                                        permission='Write';
+                                    }else{
+                                        permission='Read';
+                                    }
 
+                                    res.send({session:session.uuid,Owner:session.owner,visibility:session.visibility,password:hasPassword,members:session.users.length,creation:session.creation,posts:notes.length});
+                                    ws.addMember(user.email,session.uuid,permission);
                                 });
                             });
 

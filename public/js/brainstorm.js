@@ -162,9 +162,11 @@ $('document').ready(function () {
 
         var userMail=$('#userMail').val();
 
-        if(userMail){
+        var permission=$.trim($('#permissionBtn').text());
 
-            $.post('/user/invite',{usermail:userMail,sessionID:sessionId}, function(response){
+        if(userMail && permission!='Permission'){
+
+            $.post('/user/invite',{usermail:userMail,sessionID:sessionId,permission:permission}, function(response){
                 $('.alert').remove();
                 if(response==-3 && !$('#inviteUserLabel').next().attr('id')){
                     $('.alert').remove();
@@ -186,7 +188,10 @@ $('document').ready(function () {
             });
 
         }else if(!userMail && !$('#inviteUserLabel').next().attr('id')){
-            $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>please set User E-Mail</li>  </ul>  </div>');
+            $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>Please set User E-Mail</li>  </ul>  </div>');
+
+        }else if(permission=='Permission'){
+            $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>Please set Permission</li>  </ul>  </div>');
 
         }
     })
@@ -227,6 +232,23 @@ $('document').ready(function () {
     socket.on('session deleted',function(sessionID){
         alert("deleted");
     });
+
+    socket.on('member accepted',function(member){
+
+        var permissionsymbol;
+
+        if(member.permission=='Read'){
+            permissionsymbol='<span class="glyphicon glyphicon-eye-open"></span>';
+        }else{
+            permissionsymbol='<span class="glyphicon glyphicon-pencil"></span>';
+        }
+
+        var test= '<li > <a href=""  data-toggle="modal" data-target="#modal-container-userSettings"><span class="glyphicon glyphicon-user"></span>'+member.user+permissionsymbol+'  </a> </li>';
+
+        $('#members').prepend('<li > <a href=""  data-toggle="modal" data-target="#modal-container-userSettings"><span class="glyphicon glyphicon-user"></span>'+member.user+' '+permissionsymbol+'  </a> </li>');
+
+
+     });
     
     socket.on('note added', function(note) {
         // check if we cannot find that element already (otherwise we have added it ourselves)

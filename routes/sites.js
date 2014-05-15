@@ -255,6 +255,8 @@ exports.deleteAllSessions=function(req,res,next){
                         session.save();
                     }
 
+                    count=count+1;
+
                     if(count==sessions.length){
                         res.send('1');
                     }
@@ -282,6 +284,9 @@ exports.leaveSession=function(req,res,next){
                 var index=session.users.indexOf(useremail);
 
                 session.users.splice(index);
+                if(session.read.indexOf(useremail)!=-1){
+                    session.read.splice(session.users.indexOf(useremail),1);
+                }
 
                 session.save();
             }
@@ -355,10 +360,12 @@ function checkLoginAndRender(req,res,session,useremail){
 
         if(index==-1 && useremail!=session.owner){
             session.users.push(useremail);
-            session.save();
+            session.save(function(err){
+                ws.addMember(useremail,session.uuid,'Write');
+            });
         }
 
-        res.render('session',{username:req.session.user, usermail:req.session.email, errortext:req.flash('errMessage'), loadedsession:session.uuid});
+        res.render('session',{owner:session.owner,username:req.session.user, usermail:req.session.email,members:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
 
     } else {
         res.redirect('/');
