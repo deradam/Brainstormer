@@ -67,8 +67,13 @@ exports.deleteSession = function(sessionID){
     io.sockets.emit('session deleted',sessionID);
 }
 
-exports.addMember = function(user,session,permission) {
-    io.sockets.in(session).emit('member accepted', {user:user,permission:permission});
+exports.removeMember=function(session,user){
+
+
+}
+
+exports.addMember = function(user,username,session,permission) {
+    io.sockets.in(session).emit('member accepted', {user:user,username:username,permission:permission});
 }
 
 exports.addNoteToSession = function(note) {

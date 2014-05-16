@@ -215,7 +215,7 @@ $('document').ready(function () {
 
         var test= '<li > <a href=""  data-toggle="modal" data-target="#modal-container-userSettings"><span class="glyphicon glyphicon-user"></span>'+member.user+permissionsymbol+'  </a> </li>';
 
-        $('#members').prepend('<li > <a href=""  data-toggle="modal" data-target="#modal-container-userSettings"><span class="glyphicon glyphicon-user"></span>'+member.user+' '+permissionsymbol+'  </a> </li>');
+        $('#members').prepend('<li data-text="'+member.user+'"> <a href=""  data-toggle="modal" data-target="#modal-container-userSettings"><span class="glyphicon glyphicon-user"></span>'+member.username+' '+permissionsymbol+'  </a> </li>');
 
 
      });

@@ -238,7 +238,7 @@ exports.inviteResponse=function(req,res,next){
                                     }
 
                                     res.send({session:session.uuid,Owner:session.owner,visibility:session.visibility,password:hasPassword,members:session.users.length,creation:session.creation,posts:notes.length});
-                                    ws.addMember(user.email,session.uuid,permission);
+                                    ws.addMember(user.email,user.username,session.uuid,permission);
                                 });
                             });
 

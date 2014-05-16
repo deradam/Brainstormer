@@ -85,7 +85,8 @@ exports.getSessions=function(req,res,next){
     var errortext=[];
     var errortype;
     var errorsource;
-
+    var notes=[];
+    var count=0;
 
     if(useremail){
 
@@ -93,8 +94,7 @@ exports.getSessions=function(req,res,next){
 
             Session.find({$or:[{owner:useremail},{users:{$in:[useremail]}}]},function(err,sessions){
 
-                var notes=[];
-                var count=0;
+
 
                 if(sessions.length>0){
 
@@ -288,7 +288,9 @@ exports.leaveSession=function(req,res,next){
                     session.read.splice(session.users.indexOf(useremail),1);
                 }
 
-                session.save();
+                session.save(function(err){
+
+                });
             }
 
         });
@@ -301,6 +303,8 @@ function checkVisibilityAndInvitation(req,res,session,useremail){
     var userindex;
     var invitation;
     var errortext=[];
+    var members=[];
+    var count=0;
 
     if(session.visibility=='Private'){
 
@@ -314,9 +318,35 @@ function checkVisibilityAndInvitation(req,res,session,useremail){
 
                 if(userindex!=-1 || session.owner==useremail || invitation!=-1){
 
-                    user.invitations.splice(invitation);
-                    user.save();
-                    checkLoginAndRender(req,res,session,useremail);
+                    if(session.users.length>0){
+                    session.users.forEach(function(user){
+
+                        User.findOne({email:user},function(err,user){
+                            members.push(user.username);
+                            count=count+1;
+
+                            if(count==session.users.length){
+                                user.invitations.splice(invitation);
+                                user.save(function(err){
+
+                                    checkLoginAndRender(req,res,session,useremail,members);
+                                });
+
+                            }
+
+                        });
+
+                    });
+                    }else{
+                        user.invitations.splice(invitation);
+
+
+                        members.push(user.username);
+
+                        user.save();
+                        checkLoginAndRender(req,res,session,useremail,members);
+
+                    }
 
                 }else{
                     req.session.sessID=null;
@@ -336,13 +366,13 @@ function checkVisibilityAndInvitation(req,res,session,useremail){
 
     }else{
 
-        checkLoginAndRender(req,res,session,useremail);
+        checkLoginAndRender(req,res,session,useremail,members);
 
     }
 
 };
 
-function checkLoginAndRender(req,res,session,useremail){
+function checkLoginAndRender(req,res,session,useremail,members){
 
     if (session && !useremail) {
 
@@ -360,12 +390,18 @@ function checkLoginAndRender(req,res,session,useremail){
 
         if(index==-1 && useremail!=session.owner){
             session.users.push(useremail);
+
             session.save(function(err){
-                ws.addMember(useremail,session.uuid,'Write');
+
+                User.findOne({email:useremail},function(err,user){
+                    members.push(user.username);
+                    ws.addMember(useremail,user.username,session.uuid,'Write');
+                });
+
             });
         }
 
-        res.render('session',{owner:session.owner,visibility:session.visibility,username:req.session.user, usermail:req.session.email,members:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
+        res.render('session',{owner:session.owner,visibility:session.visibility,username:req.session.user, usermail:req.session.email,members:members,membermails:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
 
     } else {
         res.redirect('/');
@@ -435,6 +471,7 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
                 }
 
                 session.owner=user.email;
+                session.users.push(user.email);
 
                 user.save(function(err){
 
