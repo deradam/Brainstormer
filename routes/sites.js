@@ -365,7 +365,7 @@ function checkLoginAndRender(req,res,session,useremail){
             });
         }
 
-        res.render('session',{owner:session.owner,username:req.session.user, usermail:req.session.email,members:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
+        res.render('session',{owner:session.owner,visibility:session.visibility,username:req.session.user, usermail:req.session.email,members:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
 
     } else {
         res.redirect('/');

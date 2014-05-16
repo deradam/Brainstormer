@@ -19,6 +19,7 @@ $('document').ready(function () {
     desk.on('click', function (e) {
         if (e.originalEvent.detail === 1) {
             clickTimer = setTimeout(function() {
+
                 updateSelection();
             }, 250);
         }
@@ -121,42 +122,7 @@ $('document').ready(function () {
         }
     });
 
-    $('.deleteSessionBtn').on('click', function(){
 
-        var sessioncounter=$('#mySessions').children().length-1;
-
-
-
-        var selectedSession=$(this).parent().parent().children('a').text();
-
-        if(selectedSession==sessionId){
-
-            $.post('/session/delete',{session:selectedSession});
-
-            $(this).parent().parent().remove();
-
-            sessioncounter=sessioncounter-1;
-
-            if(sessioncounter>0){
-
-                window.location.href="/session/"+$('#mySessions').children().eq(sessioncounter-1).children('a').text();
-            }else{
-                window.location.href="/session/new";
-            }
-
-
-
-        }else{
-
-            $.post('/session/delete',{session:selectedSession});
-
-            $(this).parent().parent().remove();
-
-            sessioncounter=sessioncounter-1;
-
-        }
-
-    });
 
     $('#inviteBtn').on('click',function(){
 
@@ -207,6 +173,10 @@ $('document').ready(function () {
         $('.alert').remove();
 
     })
+
+    $('#desk').on('click','section',function(){
+
+    });
 
 
 
