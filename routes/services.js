@@ -5,7 +5,7 @@
 
 var ws = require('../io/websocket');
 var util = require('util');
-
+var crypt = require('crypto');
 var models = require('../model/model');
 var Session = models.Session;
 var Note = models.Note;
@@ -328,6 +328,68 @@ exports.changeMemberPermission=function(req,res,next){
 
     });
 
+
+};
+
+exports.setSessionPass=function(req,res,next){
+
+    var sessionpass=req.body.sessionpass;
+    var session=req.body.session;
+    var owner=req.body.owner;
+    var salt;
+    var hash ;
+
+    if(req.session.email==owner){
+        Session.findOne({uuid:session},function(err,session){
+
+            if(session.owner==owner && !session.password){
+                salt = crypt.randomBytes(256);
+                hash = crypt.createHmac("sha1",salt).update(sessionpass).digest("hex");
+
+                session.salt=salt;
+                session.password=hash;
+
+                session.save(function(err){
+                    req.session.sesspass=hash;
+                    res.send('1');
+                })
+            }else{
+                res.send('-1');
+            }
+        });
+
+    }
+
+};
+
+exports.resetSessionPass=function(req,res,next){
+
+    var owner=req.body.owner;
+    var session=req.body.session;
+    var sessionpassword=req.body.sessionpass;
+    var salt;
+    var hash;
+
+    Session.findOne({uuid:session},function(err,session){
+
+        if(session){
+
+            salt = session.salt;
+            hash = crypt.createHmac("sha1",salt).update(sessionpassword).digest("hex");
+
+            if(hash==session.password){
+                session.password=null;
+
+                session.save(function(err){
+                    res.send('1');
+                });
+            }else{
+                res.send('-3');
+            }
+        }else{
+            res.send('session not found');
+        }
+    });
 
 };
 

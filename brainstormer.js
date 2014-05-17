@@ -83,7 +83,8 @@ app.get('/session/:id', routes.sites.getSession);
 app.post('/session/delete',routes.sites.deleteSession);
 app.post('/session/leave',routes.sites.leaveSession);
 
-
+app.post('/session/setpassword',routes.services.setSessionPass);
+app.post('/session/resetPassword',routes.services.resetSessionPass);
 app.post('/checkpermission',routes.sites.checkPasswordAndRedirect);
 app.post('/user/invite',routes.services.inviteUserToSession);
 app.post('/user/remove',routes.services.deleteMemberFromSession);

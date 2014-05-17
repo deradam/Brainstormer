@@ -138,28 +138,28 @@ $('document').ready(function () {
                 $('.alert').remove();
                 if(response==-3 && !$('#inviteUserLabel').next().attr('id')){
                     $('.alert').remove();
-                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger alert-dismissable">Something went wrong: <ul> <li>already invited!</li>  </ul>  </div>').fadeIn();
+                    $('#inviteUserLabel').after('<div  class="alert alert-danger alert-dismissable text-center">Already Invited! </div>').fadeIn();
                 }
 
                 if(response==-2 && !$('#inviteUserLabel').next().attr('id')){
                     $('.alert').remove();
-                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger alert-dismissable"> Something went wrong: <ul> <li>User doesnt exist!</li>  </ul>  </div>');
+                    $('#inviteUserLabel').after('<div  class="alert alert-danger alert-dismissable text-center">User doesnt exist!  </div>');
                 }
 
 
                 if(response==1){
                     $('.alert').remove();
-                    $('#inviteUserLabel').after('<div id="inviteUserSuccess" class="alert alert-success"> User invited!  </div>');
+                    $('#inviteUserLabel').after('<div  class="alert alert-success text-center"> User invited!  </div>');
                     window.setTimeout(function() { $('#modal-container-inviteUser').modal('hide')},1000);
                 }
 
             });
 
         }else if(!userMail && !$('#inviteUserLabel').next().attr('id')){
-            $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>Please set User E-Mail</li>  </ul>  </div>');
+            $('#inviteUserLabel').after('<div class="alert alert-danger text-center">Please set User E-Mail! </div>');
 
         }else if(permission=='Permission'){
-            $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>Please set Permission</li>  </ul>  </div>');
+            $('#inviteUserLabel').after('<div class="alert alert-danger text-center">Please set Permission! </div>');
 
         }
     });
@@ -184,14 +184,66 @@ $('document').ready(function () {
 
         if(permission=='Permission'){
             alert("huhu");
-            $('#UserSettingsLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>Please set Permission!</li>  </ul>  </div>');
+            $('#UserSettingsLabel').after('<div class="alert alert-danger text-center">Please set Permission! </div>');
         }else{
             $.post('/user/changepermission',{user:clickedMember,session:sessionId,permission:permission},function(){
-                $('#UserSettingsLabel').after('<div id="inviteUserFailure" class="alert alert-success"> Changed Permission! </div>');
+                $('#UserSettingsLabel').after('<div  class="alert alert-success text-center"> Changed Permission! </div>');
                 window.setTimeout(function() { $('#modal-container-userSettings').modal('hide')},1000);
 
             });
         }
+    });
+
+
+
+    $('#sessionPassBtn').on('click',function(){
+
+        var sessionpassword= $.trim($('#sessionPass').val());
+        var sessionpasswordrtp= $.trim($('#sessionPassRtp').val());
+        var owner=$('#usermail').val();
+
+
+        if(!sessionpassword || !sessionpasswordrtp){
+
+            $('#setPasswordLabel').after('<div class="alert alert-danger text-center">Pls set Password! </div>');
+
+        }else if(sessionpassword==sessionpasswordrtp){
+
+            $.post('/session/setpassword',{session:sessionId,sessionpass:sessionpassword,owner:owner});
+            $('#setPasswordLabel').after('<div class="alert alert-success text-center">Password has been Changed! </div>');
+            $('#modal-container-setPasswordtoSession').modal('hide');
+            $('#lockSession').hide();
+            $('#unlockSession').show();
+        }else{
+            $('#setPasswordLabel').after('<div class="alert alert-danger text-center">Passwords not same! </div>');
+        }
+
+    });
+
+    $('#unlockSessionBtn').on('click',function(){
+
+        window.setTimeout(function() { $(".alert").fadeOut(600); },1500);
+        var sessionpass=$('#currentPass').val();
+        var owner=$('#usermail').val();
+
+        if(!sessionpass){
+            $('#unlockSessionTitle').after('<div class="alert alert-danger text-center">Passwords not set!</div>');
+        }else{
+            $.post('/session/resetPassword',{session:sessionId,owner:owner,sessionpass:sessionpass},function(result){
+                if(result=='1'){
+
+                    $('#lockSession').show();
+                    $('#unlockSession').hide();
+
+                    $('#unlockSessionTitle').after('<div class="alert alert-success text-center">Session unlocked!</div>');
+                    $('#modal-container-unlockSession').modal('hide');
+
+                }else if(result=='-3'){
+                    $('#unlockSessionTitle').after('<div class="alert alert-danger text-center">Passwords not correct!</div>');
+                }
+            });
+        }
+
     });
 
 

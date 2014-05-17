@@ -151,6 +151,7 @@ exports.getSession = function (req, res, next) {
     var errortype;
     var errorsource;
 
+
     if (sessionId) {
 
         Session.findOne({uuid:sessionId}, function (error, session) {
@@ -173,6 +174,7 @@ exports.getSession = function (req, res, next) {
                     }
 
                 }else{
+
                     checkVisibilityAndInvitation(req,res,session,useremail);
                 }
 
@@ -387,7 +389,7 @@ function checkLoginAndRender(req,res,session,useremail,members){
 
 
         var index=session.users.indexOf(useremail);
-
+        var passwordflag;
 
         if(index==-1 && useremail!=session.owner){
             session.users.push(useremail);
@@ -402,7 +404,13 @@ function checkLoginAndRender(req,res,session,useremail,members){
             });
         }
 
-        res.render('session',{owner:session.owner,visibility:session.visibility,username:req.session.user, usermail:req.session.email,members:members,membermails:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
+        if(session.password){
+            passwordflag=true;
+        }else{
+            passwordflag=false;
+        }
+
+        res.render('session',{owner:session.owner,visibility:session.visibility,username:req.session.user,passwordset:passwordflag, usermail:req.session.email,members:members,membermails:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
 
     } else {
         res.redirect('/');
