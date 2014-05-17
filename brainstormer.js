@@ -86,6 +86,8 @@ app.post('/session/leave',routes.sites.leaveSession);
 
 app.post('/checkpermission',routes.sites.checkPasswordAndRedirect);
 app.post('/user/invite',routes.services.inviteUserToSession);
+app.post('/user/remove',routes.services.deleteMemberFromSession);
+app.post('/user/changepermission',routes.services.changeMemberPermission);
 app.post('/user/inviteresponse',routes.services.inviteResponse);
 app.post('/reset',routes.services.resetUnreadInvitations);
 app.post('/deleteSessions',routes.sites.deleteAllSessions);

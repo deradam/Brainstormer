@@ -126,6 +126,8 @@ $('document').ready(function () {
 
     $('#inviteBtn').on('click',function(){
 
+        window.setTimeout(function() { $(".alert").fadeOut(600); },1500);
+
         var userMail=$('#userMail').val();
 
         var permission=$.trim($('#permissionBtn').text());
@@ -136,19 +138,19 @@ $('document').ready(function () {
                 $('.alert').remove();
                 if(response==-3 && !$('#inviteUserLabel').next().attr('id')){
                     $('.alert').remove();
-                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger alert-dismissable"> <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>Something went wrong: <ul> <li>already invited!</li>  </ul>  </div>');
+                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger alert-dismissable">Something went wrong: <ul> <li>already invited!</li>  </ul>  </div>').fadeIn();
                 }
 
                 if(response==-2 && !$('#inviteUserLabel').next().attr('id')){
                     $('.alert').remove();
-                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger alert-dismissable"> <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>Something went wrong: <ul> <li>User doesnt exist!</li>  </ul>  </div>');
+                    $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger alert-dismissable"> Something went wrong: <ul> <li>User doesnt exist!</li>  </ul>  </div>');
                 }
 
 
                 if(response==1){
                     $('.alert').remove();
                     $('#inviteUserLabel').after('<div id="inviteUserSuccess" class="alert alert-success"> User invited!  </div>');
-
+                    window.setTimeout(function() { $('#modal-container-inviteUser').modal('hide')},1000);
                 }
 
             });
@@ -160,19 +162,39 @@ $('document').ready(function () {
             $('#inviteUserLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>Please set Permission</li>  </ul>  </div>');
 
         }
-    })
+    });
 
-    $('#closeInviteBtn').on('click',function(){
+    var clickedMember;
+    $('#members').on('click','li',function(){
+        clickedMember=$(this).attr('data-text');
+    });
 
-        $('.alert').remove();
+    $('#removeUserBtn').on('click',function(){
+
+        $.post('/user/remove',{usermail:clickedMember});
+        $('#modal-container-userSettings').modal('hide');
 
     });
 
-    $('#abortInviteBtn').on('click',function(){
+    $('#changeSettings').on('click',function(){
 
-        $('.alert').remove();
+        window.setTimeout(function() { $(".alert").fadeOut(600); },1000);
 
-    })
+        var permission= $.trim($('#permissionBtn').text());
+
+        if(permission=='Permission'){
+            alert("huhu");
+            $('#UserSettingsLabel').after('<div id="inviteUserFailure" class="alert alert-danger"> Something went wrong: <ul> <li>Please set Permission!</li>  </ul>  </div>');
+        }else{
+            $.post('/user/changepermission',{user:clickedMember,session:sessionId,permission:permission},function(){
+                $('#UserSettingsLabel').after('<div id="inviteUserFailure" class="alert alert-success"> Changed Permission! </div>');
+                window.setTimeout(function() { $('#modal-container-userSettings').modal('hide')},1000);
+
+            });
+        }
+    });
+
+
 
     $('#desk').on('click','section',function(){
 
@@ -219,6 +241,57 @@ $('document').ready(function () {
 
 
      });
+
+    socket.on('member leaved',function(member){
+
+
+        $('li[data-text="'+member.usermail+'"]').remove();
+    });
+
+    socket.on('No more Access',function(){
+
+        window.location.href='/home';
+
+    });
+
+    socket.on('Permission Changed',function(message){
+
+        var actualUser=$('#usermail').val();
+
+        if(message.permission=='Read'){
+
+            if(actualUser==message.user){
+                $('#noteinput').prop('disabled',true);
+
+                $('#colorPaletteBtn').addClass('link-disabled');
+                $('#colorPaletteBtn > a').removeAttr('href');
+                $('#colorPaletteBtn > a').attr('data-toggle','');
+
+                $('#editNoteBtn').addClass('link-disabled');
+                $('#editNoteBtn > a').removeAttr('href');
+                $('#editNoteBtn > a').attr('data-toggle','');
+            }
+
+            $('#members > li[data-text="'+message.user+'"] > a').children().eq(1).removeClass().addClass('glyphicon glyphicon-eye-open');
+
+        }else if(message.permission=='Write'){
+
+            if(actualUser==message.user){
+                $('#noteinput').prop('disabled',false);
+
+                $('#colorPaletteBtn').removeClass('link-disabled');
+                $('#colorPaletteBtn > a').attr('href','""');
+                $('#colorPaletteBtn > a').attr('data-toggle','dropdown');
+
+                $('#editNoteBtn').removeClass('link-disabled');
+                $('#editNoteBtn > a').attr('href','""');
+                $('#editNoteBtn > a').attr('data-toggle','dropdown');
+            }
+            $('#members > li[data-text="'+message.user+'"] > a').children().eq(1).removeClass().addClass('glyphicon glyphicon-pencil');
+
+        }
+
+    });
     
     socket.on('note added', function(note) {
         // check if we cannot find that element already (otherwise we have added it ourselves)

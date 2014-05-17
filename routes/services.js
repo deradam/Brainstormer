@@ -51,6 +51,11 @@ exports.postNewNote = function (req, res, next) {
         note.post('save', function (next) {
             res.send(note._id);
             ws.addNoteToSession(note);
+            Session.findOne({uuid:note.sessionId},function(err,session){
+                if(session){
+                    ws.NoteCounter(note,session.users);
+                }
+            });
         });
         note.save(function (error) {
             if (!error) {
@@ -115,6 +120,11 @@ exports.deleteNote = function (req, res, next) {
                         next(new Error('Cannot delete note with id ' + note._id));
                     } else {
                         ws.deleteNoteFromSession(note);
+                        Session.findOne({uuid:note.sessionId},function(err,session){
+                            if(session){
+                                ws.NoteDecrement(note,session.users);
+                            }
+                        });
                         console.log('Successfully deleted note with id: ' + note._id);
                         res.end();
                     }
@@ -145,7 +155,7 @@ exports.inviteUserToSession=function(req,res,next){
 
                         if(user.invitations.indexOf(session.uuid)==-1 && session.users.indexOf(user.email)==-1){
 
-                            if(permission=='Read'){
+                            if(permission=='Read'&& session.read.indexOf(user.email)==-1){
                                 session.read.push(user.email);
                             }
 
@@ -238,7 +248,7 @@ exports.inviteResponse=function(req,res,next){
                                     }
 
                                     res.send({session:session.uuid,Owner:session.owner,visibility:session.visibility,password:hasPassword,members:session.users.length,creation:session.creation,posts:notes.length});
-                                    ws.addMember(user.email,user.username,session.uuid,permission);
+                                    ws.addMember(session.users,user.email,user.username,session.uuid,permission);
                                 });
                             });
 
@@ -267,6 +277,57 @@ exports.inviteResponse=function(req,res,next){
 
         });
     }
+
+};
+
+exports.deleteMemberFromSession=function(req,res,next){
+
+    var user=req.body.usermail;
+    var session=req.session.sessID;
+
+    Session.findOne({uuid:session},function(err,session){
+
+        if(session.users.indexOf(user)!=-1){
+            session.users.splice(session.users.indexOf(user),1);
+        }
+
+        if(session.read.indexOf(user)!=-1){
+            session.read.splice(session.read.indexOf(user),1);
+        }
+
+        session.save(function(err){
+            ws.tellMember(user,session);
+            ws.removeMember(session.users,session.uuid,user);
+            res.send('Member Deleted');
+        });
+    });
+
+};
+
+exports.changeMemberPermission=function(req,res,next){
+
+    var user=req.body.user;
+    var session=req.body.session;
+    var permission=req.body.permission;
+
+    Session.findOne({uuid:session},function(err,session){
+
+        if(session.read.indexOf(user)!=-1 && permission=='Write'){
+            session.read.splice(session.read.indexOf(user),1);
+
+        }else if(session.read.indexOf(user)==-1 && permission=='Read'){
+            session.read.push(user);
+        }
+
+        session.save(function(err){
+
+            ws.MemberPermissionChanged(session.uuid,user,permission);
+            res.send('permission changed');
+        });
+
+
+    });
+
 
 };
 

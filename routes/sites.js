@@ -289,7 +289,8 @@ exports.leaveSession=function(req,res,next){
                 }
 
                 session.save(function(err){
-
+                    ws.removeMember(session.users,session.uuid,useremail);
+                    res.send('session leaved');
                 });
             }
 
@@ -395,7 +396,7 @@ function checkLoginAndRender(req,res,session,useremail,members){
 
                 User.findOne({email:useremail},function(err,user){
                     members.push(user.username);
-                    ws.addMember(useremail,user.username,session.uuid,'Write');
+                    ws.addMember(session.users,useremail,user.username,session.uuid,'Write');
                 });
 
             });
@@ -575,3 +576,4 @@ exports.checkPasswordAndRedirect=function(req,res){
     }
 
 };
+

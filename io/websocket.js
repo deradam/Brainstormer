@@ -3,7 +3,7 @@
  */
 
 var io;
-    
+var Session = require('../model/model.js').Session;
 var logger;
 
 exports.setLogger = function(_logger) {
@@ -67,13 +67,85 @@ exports.deleteSession = function(sessionID){
     io.sockets.emit('session deleted',sessionID);
 }
 
-exports.removeMember=function(session,user){
+exports.removeMember=function(members,session,usermail){
+
+    //io.sockets.in(session).emit('member leaved',{session:session,usermail:usermail});
+
+    for(var i=0;i<members.length;i++){
+
+        for(var j=0;j<clients.length;j++){
+            if(clients[j].user==members[i] && clients[j].user!=usermail){
+
+                io.sockets.socket(clients[j].socketId).emit('member leaved',{session:session,usermail:usermail});
+            }
+        }
+
+    }
 
 
 }
 
-exports.addMember = function(user,username,session,permission) {
-    io.sockets.in(session).emit('member accepted', {user:user,username:username,permission:permission});
+exports.tellMember=function(user,session){
+
+    for(var i=0;i<clients.length;i++){
+        if(clients[i].user==user){
+            io.sockets.socket(clients[i].socketId).emit('No more Access');
+        }
+    }
+
+}
+
+exports.addMember = function(members,user,username,session,permission) {
+    //io.sockets.in(session).emit('member accepted', {user:user,username:username,permission:permission,session:session});
+
+    for(var i=0;i<members.length;i++){
+
+        for(var j=0;j<clients.length;j++){
+            if(clients[j].user==members[i] && clients[j].user!=user){
+
+                io.sockets.socket(clients[j].socketId).emit('member accepted', {user:user,username:username,permission:permission,session:session});
+            }
+        }
+
+    }
+}
+
+exports.MemberPermissionChanged=function(session,user,permission){
+
+    var message={user:user,permission:permission};
+    io.sockets.in(session).emit('Permission Changed', message);
+
+
+}
+
+exports.NoteCounter = function(note,members) {
+
+    for(var i=0;i<members.length;i++){
+
+        for(var j=0;j<clients.length;j++){
+            if(clients[j].user==members[i]){
+
+
+                io.sockets.socket(clients[j].socketId).emit('Note increment', note);
+            }
+        }
+
+    }
+}
+
+exports.NoteDecrement = function(note,members) {
+
+    for(var i=0;i<members.length;i++){
+
+        for(var j=0;j<clients.length;j++){
+            if(clients[j].user==members[i]){
+
+
+                io.sockets.socket(clients[j].socketId).emit('Note decrement', note);
+            }
+        }
+
+    }
 }
 
 exports.addNoteToSession = function(note) {
