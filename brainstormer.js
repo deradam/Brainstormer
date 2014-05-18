@@ -82,14 +82,16 @@ app.post('/session/new/:sessionid?', routes.sites.newSession);
 app.get('/session/:id', routes.sites.getSession);
 app.post('/session/delete',routes.sites.deleteSession);
 app.post('/session/leave',routes.sites.leaveSession);
-
 app.post('/session/setpassword',routes.services.setSessionPass);
 app.post('/session/resetPassword',routes.services.resetSessionPass);
+app.post('/session/visibility',routes.services.changeVisibility);
+
 app.post('/checkpermission',routes.sites.checkPasswordAndRedirect);
 app.post('/user/invite',routes.services.inviteUserToSession);
 app.post('/user/remove',routes.services.deleteMemberFromSession);
 app.post('/user/changepermission',routes.services.changeMemberPermission);
 app.post('/user/inviteresponse',routes.services.inviteResponse);
+app.post('/user/changepassword',routes.services.changeUserPass);
 app.post('/reset',routes.services.resetUnreadInvitations);
 app.post('/deleteSessions',routes.sites.deleteAllSessions);
 

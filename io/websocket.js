@@ -148,6 +148,21 @@ exports.sessionPassRemoved=function(members,owner,session){
 
 };
 
+exports.sessionVisibilityChanged=function(members,session,visibility){
+
+    for(var i=0;i<members.length;i++){
+
+        for(var j=0;j<clients.length;j++){
+            if(clients[j].user==members[i]){
+
+                io.sockets.socket(clients[j].socketId).emit('visibility changed',{session:session,visibility:visibility});
+            }
+        }
+
+    }
+
+};
+
 exports.NoteCounter = function(note,members) {
 
     for(var i=0;i<members.length;i++){

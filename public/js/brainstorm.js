@@ -102,6 +102,7 @@ $('document').ready(function () {
         }
     });
     $('input[type="search"]').keyup(function (event) {
+
         event.stopPropagation();
         if (event.which == 27) {
             resetSearch();
@@ -126,7 +127,8 @@ $('document').ready(function () {
 
     $('#inviteBtn').on('click',function(){
 
-        window.setTimeout(function() { $(".alert").fadeOut(600); },1500);
+        $(this).attr('disabled',true);
+        window.setTimeout(function() { $(".alert").fadeOut(500,function(){$('#inviteBtn').removeAttr('disabled');}); },600);
 
         var userMail=$('#userMail').val();
 
@@ -150,7 +152,7 @@ $('document').ready(function () {
                 if(response==1){
                     $('.alert').remove();
                     $('#inviteUserLabel').after('<div  class="alert alert-success text-center"> User invited!  </div>');
-                    window.setTimeout(function() { $('#modal-container-inviteUser').modal('hide')},1000);
+                    window.setTimeout(function() { $('#modal-container-inviteUser').modal('hide')},500);
                 }
 
             });
@@ -178,7 +180,7 @@ $('document').ready(function () {
 
     $('#changeSettings').on('click',function(){
 
-        window.setTimeout(function() { $(".alert").fadeOut(600); },1000);
+        window.setTimeout(function() { $(".alert").fadeOut(600); },500);
 
         var permission= $.trim($('#permissionBtn').text());
 
@@ -198,6 +200,9 @@ $('document').ready(function () {
 
     $('#sessionPassBtn').on('click',function(){
 
+        $(this).attr("disabled", true);
+
+        window.setTimeout(function() { $(".alert").fadeOut(600,function(){$('#sessionPassBtn').removeAttr('disabled');}); },500);
         var sessionpassword= $.trim($('#sessionPass').val());
         var sessionpasswordrtp= $.trim($('#sessionPassRtp').val());
         var owner=$('#usermail').val();
@@ -210,10 +215,13 @@ $('document').ready(function () {
         }else if(sessionpassword==sessionpasswordrtp){
 
             $.post('/session/setpassword',{session:sessionId,sessionpass:sessionpassword,owner:owner});
-            $('#setPasswordLabel').after('<div class="alert alert-success text-center">Password has been Changed! </div>');
-            $('#modal-container-setPasswordtoSession').modal('hide');
-            $('#lockSession').hide();
-            $('#unlockSession').show();
+            $('#setPasswordLabel').after('<div class="alert alert-success text-center">Password has been set! </div>');
+
+            window.setTimeout(function() { $('#modal-container-setPasswordtoSession').modal('hide'); },500);
+
+
+            $('#lockSession').addClass('hide');
+            $('#unlockSession').removeClass('hide');
         }else{
             $('#setPasswordLabel').after('<div class="alert alert-danger text-center">Passwords not same! </div>');
         }
@@ -222,7 +230,9 @@ $('document').ready(function () {
 
     $('#unlockSessionBtn').on('click',function(){
 
-        window.setTimeout(function() { $(".alert").fadeOut(600); },1500);
+        $(this).attr('disabled',true);
+        window.setTimeout(function() { $(".alert").fadeOut(600,function(){$('#unlockSessionBtn').removeAttr('disabled');}); },500);
+
         var sessionpass=$('#currentPass').val();
         var owner=$('#usermail').val();
 
@@ -232,17 +242,64 @@ $('document').ready(function () {
             $.post('/session/resetPassword',{session:sessionId,owner:owner,sessionpass:sessionpass},function(result){
                 if(result=='1'){
 
-                    $('#lockSession').show();
-                    $('#unlockSession').hide();
+                    $('#lockSession').removeClass('hide');
+                    $('#unlockSession').addClass('hide');
 
                     $('#unlockSessionTitle').after('<div class="alert alert-success text-center">Session unlocked!</div>');
-                    $('#modal-container-unlockSession').modal('hide');
+
+                    window.setTimeout(function() { $('#modal-container-unlockSession').modal('hide'); },500);
 
                 }else if(result=='-3'){
                     $('#unlockSessionTitle').after('<div class="alert alert-danger text-center">Passwords not correct!</div>');
                 }
             });
         }
+
+    });
+
+    $('#changeAccPassBtn').on('click',function(){
+        $(this).attr("disabled", true);
+        window.setTimeout(function() { $(".alert").fadeOut(500,function(){$('#changeAccPassBtn').removeAttr('disabled');}); },600);
+
+        var oldpass=$('#oldPass').val();
+        var newpass=$('#newPass').val();
+        var owner=$('#usermail').val();
+
+        if(!oldpass || !newpass){
+            $('#changePassTitle').after('<div class="alert alert-danger text-center">Pls fill both fields!</div>');
+        }else{
+
+            $.post('/user/changepassword',{user:owner,oldpass:oldpass,newpass:newpass},function(result){
+
+                if(result=='1'){
+                    $('#changePassTitle').after('<div class="alert alert-success text-center">Password changed!</div>');
+                    window.setTimeout(function() { $('#modal-container-changeAccountPass').modal('hide')},600);
+                }else if(result=='-3'){
+                    $('#changePassTitle').after('<div class="alert alert-danger text-center">Password incorrect!</div>');
+
+                }
+            });
+
+        }
+    });
+
+    $('#setToPublicBtn').on('click',function(){
+
+        $('#setSessionPublic').addClass('hide');
+        $('#setSessionPrivate').removeClass('hide');
+        $.post('/session/visibility',{visibility:'Public',session:sessionId},function(result){
+            $('#modal-container-changeToPublic').modal('hide');
+        });
+
+    });
+
+    $('#setToPrivateBtn').on('click',function(){
+
+        $('#setSessionPublic').removeClass('hide');
+        $('#setSessionPrivate').addClass('hide');
+        $.post('/session/visibility',{visibility:'Private',session:sessionId},function(result){
+            $('#modal-container-changeToPublic').modal('hide');
+        });
 
     });
 
@@ -274,8 +331,14 @@ $('document').ready(function () {
     });
 
     socket.on('session deleted',function(sessionID){
-        alert("deleted");
+        window.location.reload(true);
     });
+
+    socket.on('visibility changed',function(data){
+        window.location.reload(true);
+    });
+
+
 
     socket.on('member accepted',function(member){
 

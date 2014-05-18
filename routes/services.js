@@ -379,7 +379,7 @@ exports.resetSessionPass=function(req,res,next){
             hash = crypt.createHmac("sha1",salt).update(sessionpassword).digest("hex");
 
             if(hash==session.password){
-                session.password=null;
+                session.password='';
 
                 session.save(function(err){
                     ws.sessionPassRemoved(session.users,owner,session.uuid);
@@ -391,6 +391,81 @@ exports.resetSessionPass=function(req,res,next){
         }else{
             res.send('session not found');
         }
+    });
+
+};
+
+exports.changeUserPass=function(req,res,next){
+
+    var user=req.session.email;
+    var newPass=req.body.newpass;
+    var oldpass=req.body.oldpass
+    var salt;
+    var hash;
+
+    User.findOne({email:user},function(err,user){
+
+        console.log('gefunden');
+        if(user){
+
+            salt = user.salt;
+            hash = crypt.createHmac("sha1",salt).update(oldpass).digest("hex");
+
+            if(user.password==hash){
+                var newsalt = crypt.randomBytes(256);
+                var newhash = crypt.createHmac("sha1",newsalt).update(newPass).digest("hex");
+
+                user.salt=newsalt;
+                user.password=newhash;
+
+                user.save(function(err){
+
+                    res.send('1');
+
+                });
+
+            }else{
+                res.send('-3');
+            }
+
+        }
+    });
+
+};
+
+exports.changeVisibility=function(req,res,next){
+
+    var visibility=req.body.visibility;
+    var session=req.body.session;
+    var membercopie;
+
+    Session.findOne({uuid:session},function(err,session){
+
+        if(session){
+
+            membercopie=session.users.slice();
+
+            if(visibility=='Public'){
+                session.visibility='Public';
+            }else if(visibility=='Private'){
+                session.visibility='Private';
+
+                session.users=[];
+                session.users.push(session.owner);
+                session.read=[];
+
+            }
+
+            session.save(function(err){
+                res.send('1');
+                ws.sessionVisibilityChanged(membercopie,session.uuid,visibility);
+
+            });
+
+        }else{
+            res.send('-1');
+        }
+
     });
 
 };
