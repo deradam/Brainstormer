@@ -547,6 +547,9 @@ exports.checkPasswordAndRedirect=function(req,res){
 
         Session.findOne({uuid:sessionID},function(err,session){
 
+            if(session){
+
+
             salt=session.salt;
             hash=crypt.createHmac("sha1",salt).update(sesspassword).digest("hex");
 
@@ -563,6 +566,10 @@ exports.checkPasswordAndRedirect=function(req,res){
 
                 res.render('password',{errortext:errortext,errortype:errortype,errorsource:errorsource});
 
+            }
+            }else{
+                errortext.push('Session doesn'+"'"+'t exist anymore.');
+                res.render('permissionfail',{errortext:errortext});
             }
 
         });

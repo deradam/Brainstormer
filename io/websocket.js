@@ -118,6 +118,36 @@ exports.MemberPermissionChanged=function(session,user,permission){
 
 }
 
+exports.setSessionPass=function(members,owner,session){
+
+    for(var i=0;i<members.length;i++){
+
+        for(var j=0;j<clients.length;j++){
+            if(clients[j].user==members[i] && clients[j].user!=owner){
+
+                io.sockets.socket(clients[j].socketId).emit('password set',{session:session});
+            }
+        }
+
+    }
+
+};
+
+exports.sessionPassRemoved=function(members,owner,session){
+
+    for(var i=0;i<members.length;i++){
+
+        for(var j=0;j<clients.length;j++){
+            if(clients[j].user==members[i] && clients[j].user!=owner){
+
+                io.sockets.socket(clients[j].socketId).emit('password removed',{session:session});
+            }
+        }
+
+    }
+
+};
+
 exports.NoteCounter = function(note,members) {
 
     for(var i=0;i<members.length;i++){

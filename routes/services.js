@@ -351,6 +351,7 @@ exports.setSessionPass=function(req,res,next){
 
                 session.save(function(err){
                     req.session.sesspass=hash;
+                    ws.setSessionPass(session.users,owner,session.uuid);
                     res.send('1');
                 })
             }else{
@@ -381,6 +382,7 @@ exports.resetSessionPass=function(req,res,next){
                 session.password=null;
 
                 session.save(function(err){
+                    ws.sessionPassRemoved(session.users,owner,session.uuid);
                     res.send('1');
                 });
             }else{

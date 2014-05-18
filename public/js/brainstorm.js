@@ -302,7 +302,17 @@ $('document').ready(function () {
 
     socket.on('No more Access',function(){
 
-        window.location.href='/home';
+        window.location.reload(true);
+
+    });
+
+    socket.on('password set',function(data){
+        window.location.reload(true);
+    });
+
+    socket.on('password removed',function(){
+
+        $('#lockSymbol').hide();
 
     });
 
