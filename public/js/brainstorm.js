@@ -314,8 +314,9 @@ $('document').ready(function () {
         //$('.contribution[creator=' + $('#userID').val() + ']').addClass('selected');
 
         var noteId=$('.selected').attr('_id');
+        var creator=$('#userID').val();
 
-        $.post('/note/setedit',{note_id:noteId,editable:'Yes'});
+        $.post('/note/setedit',{note_id:noteId,editable:'Yes',creator:creator});
     });
 
     $('#noteditableBtn').on('click',function(){
@@ -324,8 +325,14 @@ $('document').ready(function () {
         //$('.contribution[creator=' + $('#userID').val() + ']').addClass('selected');
 
         var noteId=$('.selected').attr('_id');
+        var creator=$('#userID').val();
+        $.post('/note/setedit',{note_id:noteId,editable:'No',creator:creator});
+    });
 
-        $.post('/note/setedit',{note_id:noteId,editable:'No'});
+    var sessionOwnerID;
+
+    $.post('/user/sessionowner',{sessionID:sessionId},function(sessionOwner){
+        sessionOwnerID=sessionOwner;
     });
 
     $.get('/notes/' + sessionStorage.sessionId, function (notes) {
@@ -334,26 +341,34 @@ $('document').ready(function () {
             // fallback for old notes without uuid
             note.uuid = note.uuid || Math.uuid();
 
-
-
             var contribution = addContribution(note.uuid, formatDate(date), note.text, note.left, note.top, note.color,note.editable);
             limitCoordinates(contribution, null, null);
             contribution.attr('_id', note._id);
             contribution.attr('editable', note.editable);
             contribution.attr('creator', note.creator);
 
-            if($('#noteinput').attr('disabled')){
-                $('.contribution[uuid="'+note.uuid+'"] > section').editable('disable');
-                $('.contribution[uuid="'+note.uuid+'"]').draggable('disable');
-            }else if(($('#userID').val()==note.creator || note.editable=='Yes') && !$('#noteinput').attr('disabled')){
+            if($('#userID').val()!=sessionOwnerID){
+                if($('#noteinput').attr('disabled')){
+                    $('.contribution[uuid="'+note.uuid+'"] > section').editable('disable');
+                    $('.contribution[uuid="'+note.uuid+'"]').draggable('disable');
+                }else if(($('#userID').val()==note.creator || note.editable=='Yes') && !$('#noteinput').attr('disabled')){
+                    $('.contribution[uuid="'+note.uuid+'"] > section').editable('enable');
+                    $('.contribution[uuid="'+note.uuid+'"]').draggable('enable');
+
+                }else{
+                    $('.contribution[uuid="'+note.uuid+'"] > section').editable('disable');
+                    $('.contribution[uuid="'+note.uuid+'"]').draggable('disable');
+
+                }
+
+            }else{
+
                 $('.contribution[uuid="'+note.uuid+'"] > section').editable('enable');
                 $('.contribution[uuid="'+note.uuid+'"]').draggable('enable');
 
-            }else{
-                $('.contribution[uuid="'+note.uuid+'"] > section').editable('disable');
-                $('.contribution[uuid="'+note.uuid+'"]').draggable('disable');
-
             }
+
+
 
         });
 
@@ -532,7 +547,8 @@ $('document').ready(function () {
 
         var userID=$('#userID').val();
 
-        if(note.creator!=userID){
+
+        if(note.creator!=userID && userID!=sessionOwnerID){
             if(note.lock=='Yes'){
                 $('.contribution[uuid=' + note.uuid + ']').attr('editable','Yes').draggable('enable');
                 $('.contribution[uuid=' + note.uuid + '] > section').editable('enable');

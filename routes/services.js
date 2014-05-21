@@ -138,23 +138,33 @@ exports.setNoteLock=function(req,res){
 
     var noteId=req.body.note_id;
     var editing=req.body.editable;
+    var creator=req.body.creator;
 
 
     if(noteId){
         Note.findOne({_id:noteId},function(err,note){
             if(note){
-                if(editing=='Yes'){
-                    note.editable='Yes';
-                }else if(editing=='No'){
-                    note.editable='No';
+
+                if(note.creator==creator){
+                    if(editing=='Yes'){
+                        note.editable='Yes';
+                    }else if(editing=='No'){
+                        note.editable='No';
+                    }
+
+                    note.save(function(err,note){
+
+                        var noteInf={uuid:note.uuid,lock:editing,creator:note.creator};
+                        ws.lockNote(note.sessionId,noteInf);
+                        res.send('1');
+                    });
+
+                }else{
+                    res.send('-3');
                 }
 
-                note.save(function(err,note){
-
-                    var noteInf={uuid:note.uuid,lock:editing,creator:note.creator};
-                    ws.lockNote(note.sessionId,noteInf);
-                    res.send('1');
-                });
+            }else{
+                res.send('-2');
             }
         });
     }else{
@@ -498,6 +508,34 @@ exports.changeVisibility=function(req,res,next){
     });
 
 };
+
+exports.getSessionOwnerID=function(req,res){
+    var sessionID=req.body.sessionID;
+
+    if(sessionID){
+
+        Session.findOne({uuid:sessionID},function(err,session){
+            if(session){
+
+                User.findOne({email:session.owner},function(err,user){
+                    if(user){
+
+                        res.send(user._id);
+
+                    }else{
+                        res.send('-1')
+                    }
+                });
+
+            }else{
+                res.send('-2');
+            }
+        });
+
+    }else{
+        res.send('-3');
+    }
+}
 
 exports.resetUnreadInvitations=function(req,res){
 

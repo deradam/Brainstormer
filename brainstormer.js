@@ -96,6 +96,7 @@ app.post('/session/visibility',routes.services.changeVisibility);
 app.get('/reset/:token?',routes.sites.checkToken);
 app.post('/user/resetpass',routes.sites.createToken);
 app.post('/user/savenewpass',routes.sites.saveNewPassAndRedirect);
+app.post('/user/sessionowner',routes.services.getSessionOwnerID);
 
 app.post('/checkpermission',routes.sites.checkPasswordAndRedirect);
 app.post('/user/invite',routes.services.inviteUserToSession);
