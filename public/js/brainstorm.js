@@ -26,8 +26,12 @@ $('document').ready(function () {
     });
     $(window).keydown(function (event) {
         var source = event.target.tagName.toLowerCase();
+        var actualUser=$('#userID').val();
+        var creatorOfselectedNote=$('.selected').attr('creator');
+        var noteLock=$('.selected').attr('editable');
+        var permissionRead=$('#noteinput').attr('disabled');
         if (source != "input" && source != "textarea") {
-            if ((event.which == 8 || event.which == 46) && (!$('#noteinput').attr('disabled')&&($('.selected').attr('editable')=='Yes' || $('.selected').attr('creator')==$('#userID').val()))) {
+            if ((event.which == 8 || event.which == 46) && ((!permissionRead &&(noteLock=='Yes' || creatorOfselectedNote==actualUser))) || actualUser==sessionOwnerID  ) {
 
                 event.stopPropagation();
                 event.preventDefault();
@@ -43,8 +47,9 @@ $('document').ready(function () {
     $('#colorpalette1').colorPalette()
         .on('selectColor', function(e) {
 
+            var actualUser=$('#userID').val();
             var contribution = $('.selected');
-            if (contribution.length > 0 && contribution.attr('editable')=='Yes') {
+            if (contribution.length > 0 && (contribution.attr('editable')=='Yes' || actualUser==sessionOwnerID)) {
                 getNoteColored(contribution.find('section'), e.color);
                 var _id = $(contribution).attr('_id');
                 $.post('/notes/update/' + _id, {color: e.color});
