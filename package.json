@@ -10,6 +10,8 @@
         "jade" : "0.35.x",
         "connect-mongo" : "0.4.x",
         "ejs":"1.0.x",
-        "promised-io":"0.3.x"
+        "promised-io":"0.3.x",
+        "nodemailer":"0.6.x",
+        "mongoose-ttl":"0.1.x"
 	}
 }

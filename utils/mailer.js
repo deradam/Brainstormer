@@ -16,6 +16,7 @@ if (mailconfig.mail.enabled) {
 }
 
 var logger;
+var nodemailer = require("nodemailer");
 
 exports.setLogger = function setLogger(_logger) {
     logger = _logger;
@@ -45,4 +46,49 @@ exports.sendMail = function sendMail(ip, sessionId) {
             }
         });
     }
+}
+
+// create reusable transport method (opens pool of SMTP connections)
+
+
+exports.senMailToReset=function(user,tokenID){
+
+    var smtpTransport = nodemailer.createTransport("SMTP",{
+        service: "Gmail",
+        auth: {
+            user: "",
+            pass: ""
+        }
+    });
+
+// setup e-mail data with unicode symbols
+    var mailOptions = {
+        from: "Brainstormer <foo@blurdybloop.com>", // sender address
+        to: user, // list of receivers
+        subject: "Password Reset", // Subject line
+        text: 'Hi '+user+',\n' +
+            '\n' +
+            'Click on the Link to set up a new password:\n' +
+            '\n' +
+            'http://localhost:3000/reset/' + tokenID  + '\n' +
+            '\n' +
+            'Best regards,\n' +
+            'Your Brainstormer team!'
+
+    }
+
+
+
+// send mail with defined transport object
+    smtpTransport.sendMail(mailOptions, function(error, res){
+        if(error){
+            console.log(error);
+        }else{
+            console.log("Message sent: " + res.message);
+
+        }
+
+        // if you don't want to use this transport object anymore, uncomment following line
+        //smtpTransport.close(); // shut down the connection pool, no more messages
+    });
 }

@@ -2,6 +2,7 @@ var dbconfig = require('../dbconfig.json');
 var mongoose = require('mongoose');
 
 var Schema = mongoose.Schema;
+var ttl = require('mongoose-ttl');
 
 // strict filtering plugin taken from
 // http://tomblobaum.tumblr.com/post/10551728245/strict-filtering-plugin-for-mongoose-js
@@ -65,12 +66,23 @@ var Notes = new Schema({
     left: Number,
     creation: Number,
     creator: String,
-    editable: Number,
+    editable: String,
     color: String,
     sessionId: String
 });
 
+var Token=new Schema({
+    hash:String,
+    creation:String,
+    salt:Buffer,
+    user:String
+
+});
+
 Notes.plugin(MongooseFilter);
+Token.plugin(ttl, { ttl: '1m' ,interval:'5s'});
+
+
 
 exports.init = function (logger) {
     var credentials = '';
@@ -90,4 +102,5 @@ exports.init = function (logger) {
 exports.Note = mongoose.model('notes', Notes);
 exports.Session = mongoose.model('sessions', Sessions);
 exports.User = mongoose.model('user',user);
+exports.Token = mongoose.model('token',Token);
 exports.ObjectId = mongoose.Types.ObjectId;

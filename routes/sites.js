@@ -10,9 +10,11 @@ var Q = require('q');
 var async = require('async');
 var crypt = require('crypto');
 
+
 var Session = require('../model/model.js').Session;
 var User = require('../model/model.js').User;
 var Notes = require('../model/model.js').Note;
+var Token = require('../model/model.js').Token;
 
 
 exports.index = function(req, res){
@@ -43,7 +45,7 @@ exports.indexNew=function(req,res){
 
     res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
 
-    res.render('indexNew', { message: req.flash('signupMessage') });
+    res.render('indexNew', { message: req.flash('signupMessage'),inputerror: req.flash('inputerror')});
 };
 
 exports.brainstormNew=function(req,res){
@@ -309,6 +311,7 @@ function checkVisibilityAndInvitation(req,res,session,useremail){
     var members=[];
     var count=0;
 
+
     if(session.visibility=='Private'){
 
         User.findOne({email:useremail},function(err,user){
@@ -410,7 +413,7 @@ function checkLoginAndRender(req,res,session,useremail,members){
             passwordflag=false;
         }
 
-        res.render('session',{owner:session.owner,visibility:session.visibility,username:req.session.user,passwordset:passwordflag, usermail:req.session.email,members:members,membermails:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
+        res.render('session',{owner:session.owner,visibility:session.visibility,username:req.session.user,passwordset:passwordflag,userID:req.session.userID, usermail:req.session.email,members:members,membermails:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
 
     } else {
         res.redirect('/');
@@ -591,4 +594,146 @@ exports.checkPasswordAndRedirect=function(req,res){
     }
 
 };
+
+exports.createToken=function(req,res,next){
+
+    var user=req.body.email;
+    var token=new Token();
+    var salt= crypt.randomBytes(256);
+    var tokenID=crypt.createHmac("sha1",salt).update(user).digest("hex");
+    var hash=crypt.createHmac("sha1",salt).update(tokenID).digest("hex");
+
+    User.findOne({email:user},function(err,user){
+
+        if(user){
+            token.user=user.email;
+            token.hash=hash;
+            token.salt=salt;
+            token.creation=Date.now();
+
+
+            token.save(function(err){
+                sendMailToResetPass(res,req,user.email,hash);
+
+            });
+        }else{
+
+            res.send('-1');
+
+        }
+
+
+    });
+
+
+};
+
+function sendMailToResetPass(res,req,user,tokenID){
+
+    mailer.senMailToReset(user,tokenID);
+    res.send('1');
+
+
+};
+
+exports.checkToken=function(req,res,next){
+
+    res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+
+    var date=Date.now();
+    var token=req.params.token;
+    req.session.token=null;
+    var errortext=[];
+
+
+    if(token && !req.session.token){
+
+        Token.findOne({hash:token},function(err,token){
+            if(token){
+
+                if(!req.session.token){
+                    req.session.token=token.hash;
+                    res.render('passwordreset',{errortext:errortext});
+
+                }else{
+                    res.redirect('/');
+                }
+
+
+            }else{
+                errortext.push('Token expired!');
+                res.render('permissionfail',{errortext:errortext});
+            }
+        });
+
+    }else{
+        res.redirect('/');
+    }
+
+};
+
+exports.saveNewPassAndRedirect=function(req,res){
+
+    res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+
+    var newpass=req.body.newpass;
+    var confirm=req.body.newpassconfirm;
+    var token=req.session.token;
+    var errortext=[];
+    var salt;
+    var hash;
+
+    if(!newpass||!confirm){
+
+        errortext.push('Please fill the whole Form!');
+        res.render('passwordreset',{errortext:errortext});
+    }else if(newpass!=confirm){
+
+        errortext.push('Passwords not same!');
+        res.render('passwordreset',{errortext:errortext});
+
+    }else{
+        Token.findOne({hash:token},function(err,token){
+
+            if(token){
+
+                User.findOne({email:token.user},function(err,user){
+
+                    if(user){
+
+                        salt= crypt.randomBytes(256);
+                        hash=hash=crypt.createHmac("sha1",salt).update(newpass).digest("hex");
+
+                        user.salt=salt;
+                        user.password=hash;
+
+                        user.save(function(err){
+                            req.session.user=user.username;
+                            req.session.email=user.email;
+                            req.session.token=null;
+                            res.redirect('/home');
+
+                            token.remove();
+                        });
+
+                    }else{
+                        req.flash('inputerror',"User doesn't exist");
+                        res.redirect('/');
+                    }
+
+                });
+
+            }else{
+                errortext.push('Token expired!');
+                res.render('permissionfail',{errortext:errortext});
+            }
+
+
+        });
+    }
+
+
+};
+
+
 

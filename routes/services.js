@@ -134,6 +134,35 @@ exports.deleteNote = function (req, res, next) {
     }
 };
 
+exports.setNoteLock=function(req,res){
+
+    var noteId=req.body.note_id;
+    var editing=req.body.editable;
+
+
+    if(noteId){
+        Note.findOne({_id:noteId},function(err,note){
+            if(note){
+                if(editing=='Yes'){
+                    note.editable='Yes';
+                }else if(editing=='No'){
+                    note.editable='No';
+                }
+
+                note.save(function(err,note){
+
+                    var noteInf={uuid:note.uuid,lock:editing,creator:note.creator};
+                    ws.lockNote(note.sessionId,noteInf);
+                    res.send('1');
+                });
+            }
+        });
+    }else{
+        res.send('-1');
+    }
+
+};
+
 
 exports.inviteUserToSession=function(req,res,next){
     var usermail=req.body.usermail;

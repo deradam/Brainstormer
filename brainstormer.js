@@ -19,11 +19,16 @@ var app = express();
 var path = require('path');
 var passport = require('passport');
 var passp=require('./routes/passport');
+var fs = require('fs');
+
+
+
 
 // importing mongodb-based session store
 var MongoStore = require('connect-mongo')(express);
 
 app.configure(function () {
+
     app.use(log4js.connectLogger(logger, { level:log4js.levels.INFO }));
     app.set('view engine', 'ejs');
     app.set('view options', {layout:false});
@@ -58,6 +63,8 @@ app.configure('production', function () {
     app.enable('trust proxy');
 });
 
+
+
 // setting up server
 logger.info('Server listening on localhost:3000');
 var server = app.listen(3000);
@@ -86,13 +93,17 @@ app.post('/session/setpassword',routes.services.setSessionPass);
 app.post('/session/resetPassword',routes.services.resetSessionPass);
 app.post('/session/visibility',routes.services.changeVisibility);
 
+app.get('/reset/:token?',routes.sites.checkToken);
+app.post('/user/resetpass',routes.sites.createToken);
+app.post('/user/savenewpass',routes.sites.saveNewPassAndRedirect);
+
 app.post('/checkpermission',routes.sites.checkPasswordAndRedirect);
 app.post('/user/invite',routes.services.inviteUserToSession);
 app.post('/user/remove',routes.services.deleteMemberFromSession);
 app.post('/user/changepermission',routes.services.changeMemberPermission);
 app.post('/user/inviteresponse',routes.services.inviteResponse);
 app.post('/user/changepassword',routes.services.changeUserPass);
-app.post('/reset',routes.services.resetUnreadInvitations);
+app.post('/invitationscounter/reset',routes.services.resetUnreadInvitations);
 app.post('/deleteSessions',routes.sites.deleteAllSessions);
 
 app.post('/signup', passp.signUp,routes.sites.loginfail);
@@ -107,3 +118,5 @@ app.post('/notes/new', routes.services.postNewNote);
 app.get('/note/:id', routes.services.getNoteById);
 app.post('/notes/update/:id', routes.services.updateNote);
 app.post('/notes/delete/:id', routes.services.deleteNote);
+app.post('/note/setedit',routes.services.setNoteLock);
+

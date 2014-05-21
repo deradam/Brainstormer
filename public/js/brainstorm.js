@@ -27,7 +27,8 @@ $('document').ready(function () {
     $(window).keydown(function (event) {
         var source = event.target.tagName.toLowerCase();
         if (source != "input" && source != "textarea") {
-            if (event.which == 8 || event.which == 46) {
+            if ((event.which == 8 || event.which == 46) && (!$('#noteinput').attr('disabled')&&($('.selected').attr('editable')=='Yes' || $('.selected').attr('creator')==$('#userID').val()))) {
+
                 event.stopPropagation();
                 event.preventDefault();
                 removeSelectedNote();
@@ -43,7 +44,7 @@ $('document').ready(function () {
         .on('selectColor', function(e) {
 
             var contribution = $('.selected');
-            if (contribution.length > 0) {
+            if (contribution.length > 0 && contribution.attr('editable')=='Yes') {
                 getNoteColored(contribution.find('section'), e.color);
                 var _id = $(contribution).attr('_id');
                 $.post('/notes/update/' + _id, {color: e.color});
@@ -86,7 +87,10 @@ $('document').ready(function () {
         }
     });
     $('div#delete').on('click', function () {
-        removeSelectedNote();
+
+            removeSelectedNote();
+
+
     });
 
     $('input[name="topic"]').keyup(function (event) {
@@ -177,6 +181,7 @@ $('document').ready(function () {
         $('#modal-container-userSettings').modal('hide');
 
     });
+
 
     $('#changeSettings').on('click',function(){
 
@@ -303,23 +308,56 @@ $('document').ready(function () {
 
     });
 
+    $('#editableBtn').on('click',function(){
 
 
-    $('#desk').on('click','section',function(){
+        //$('.contribution[creator=' + $('#userID').val() + ']').addClass('selected');
 
+        var noteId=$('.selected').attr('_id');
+
+        $.post('/note/setedit',{note_id:noteId,editable:'Yes'});
     });
 
+    $('#noteditableBtn').on('click',function(){
 
+
+        //$('.contribution[creator=' + $('#userID').val() + ']').addClass('selected');
+
+        var noteId=$('.selected').attr('_id');
+
+        $.post('/note/setedit',{note_id:noteId,editable:'No'});
+    });
 
     $.get('/notes/' + sessionStorage.sessionId, function (notes) {
         $.each(notes, function (index, note) {
             var date = new Date(note.creation);
             // fallback for old notes without uuid
             note.uuid = note.uuid || Math.uuid();
-            var contribution = addContribution(note.uuid, formatDate(date), note.text, note.left, note.top, note.color);
+
+
+
+            var contribution = addContribution(note.uuid, formatDate(date), note.text, note.left, note.top, note.color,note.editable);
             limitCoordinates(contribution, null, null);
             contribution.attr('_id', note._id);
+            contribution.attr('editable', note.editable);
+            contribution.attr('creator', note.creator);
+
+            if($('#noteinput').attr('disabled')){
+                $('.contribution[uuid="'+note.uuid+'"] > section').editable('disable');
+                $('.contribution[uuid="'+note.uuid+'"]').draggable('disable');
+            }else if(($('#userID').val()==note.creator || note.editable=='Yes') && !$('#noteinput').attr('disabled')){
+                $('.contribution[uuid="'+note.uuid+'"] > section').editable('enable');
+                $('.contribution[uuid="'+note.uuid+'"]').draggable('enable');
+
+            }else{
+                $('.contribution[uuid="'+note.uuid+'"] > section').editable('disable');
+                $('.contribution[uuid="'+note.uuid+'"]').draggable('disable');
+
+            }
+
         });
+
+
     });
 
     // socket.io configuration
@@ -382,10 +420,12 @@ $('document').ready(function () {
     socket.on('Permission Changed',function(message){
 
         var actualUser=$('#usermail').val();
+        var userID=$('#userID').val();
 
         if(message.permission=='Read'){
 
             if(actualUser==message.user){
+
                 $('#noteinput').prop('disabled',true);
 
                 $('#colorPaletteBtn').addClass('link-disabled');
@@ -395,6 +435,15 @@ $('document').ready(function () {
                 $('#editNoteBtn').addClass('link-disabled');
                 $('#editNoteBtn > a').removeAttr('href');
                 $('#editNoteBtn > a').attr('data-toggle','');
+
+
+                $('.contribution > section').each(function(i,obj){
+
+                    $(obj).editable('disable');
+                });
+
+
+                $('.contribution').draggable('disable');
             }
 
             $('#members > li[data-text="'+message.user+'"] > a').children().eq(1).removeClass().addClass('glyphicon glyphicon-eye-open');
@@ -402,6 +451,9 @@ $('document').ready(function () {
         }else if(message.permission=='Write'){
 
             if(actualUser==message.user){
+
+
+
                 $('#noteinput').prop('disabled',false);
 
                 $('#colorPaletteBtn').removeClass('link-disabled');
@@ -411,6 +463,22 @@ $('document').ready(function () {
                 $('#editNoteBtn').removeClass('link-disabled');
                 $('#editNoteBtn > a').attr('href','""');
                 $('#editNoteBtn > a').attr('data-toggle','dropdown');
+
+                $('.contribution > section').each(function(i,obj){
+
+                    alert($(obj).parent().attr('creator'));
+                    if($(obj).parent().attr('creator')==userID || $(obj).parent().attr('editable')=='Yes'){
+                        $(obj).editable('enable');
+                        $(obj).parent().draggable('enable');
+                    }else{
+                        $(obj).editable('disable');
+                        $(obj).parent().draggable('disable');
+                    }
+
+                });
+
+
+
             }
             $('#members > li[data-text="'+message.user+'"] > a').children().eq(1).removeClass().addClass('glyphicon glyphicon-pencil');
 
@@ -419,13 +487,25 @@ $('document').ready(function () {
     });
     
     socket.on('note added', function(note) {
+
+
         // check if we cannot find that element already (otherwise we have added it ourselves)
         if ($('.contribution[uuid=' + note.uuid + ']').length == 0) {
-            var contribution = addContribution(note.uuid, formatDate(note.creation), note.text, note.left, note.top, note.color);
+            var contribution = addContribution(note.uuid, formatDate(note.creation), note.text, note.left, note.top, note.color,note.editable);
+            contribution.attr('editable', note.editable);
             limitCoordinates(contribution, null, null);
             contribution.attr('_id', note._id);
+
+
+            if($('#noteinput').attr('disabled')){
+                $('.contribution[_id=' + note._id + '] > section').editable('disable');
+                $('.contribution[_id=' + note._id + ']').draggable('disable');
+
+            }
         }
     });
+
+
 
     socket.on('note updated', function(note) {
         var contribution = $('.contribution[uuid=' + note.uuid + ']');
@@ -447,35 +527,60 @@ $('document').ready(function () {
             $(contribution).remove();
         });
     });
+
+    socket.on('note lock',function(note){
+
+        var userID=$('#userID').val();
+
+        if(note.creator!=userID){
+            if(note.lock=='Yes'){
+                $('.contribution[uuid=' + note.uuid + ']').attr('editable','Yes').draggable('enable');
+                $('.contribution[uuid=' + note.uuid + '] > section').editable('enable');
+            }else if(note.lock=='No'){
+
+                $('.contribution[uuid=' + note.uuid + ']').attr('editable','No').draggable('disable');
+                $('.contribution[uuid=' + note.uuid + '] > section').editable('disable');
+
+            }
+        }
+
+
+    });
 });
 
 var addNote = function () {
     var textarea = $('input[name="topic"]');
     var text = textarea.val();
     if (text.length > 0) {
+        var creator=$('#userID').val();
+        var editable='Yes';
         var left = 10 + Math.round(Math.random() * ($('#desk').width() - 150));
         var top = $('body>header').height() + 10 + Math.round(Math.random() * ($('#desk').height() - $(contribution).height() - 50));
         var date = new Date();
         var dateString = formatDate(date);
         var uuid = Math.uuid();
-        var contribution = addContribution(uuid, dateString, text, left, top);
+        var contribution = addContribution(uuid, dateString, text, left, top,editable);
         textarea.val("");
-        $.post('/notes/new', {uuid:uuid, creation:date.getTime(), text:text, left:left, top:top, sessionId:sessionStorage.sessionId}, function (id) {
+        $.post('/notes/new', {uuid:uuid, creation:date.getTime(),creator:creator,editable:editable, text:text, left:left, top:top, sessionId:sessionStorage.sessionId}, function (id) {
             contribution.attr('_id', id);
+            contribution.attr('editable',editable);
+            contribution.attr('creator',creator);
         });
         updateSelection(contribution);
     }
 };
 
 var removeSelectedNote = function () {
-    var contribution = $('.selected');
-    if (contribution.length !== 0) {
-        var _id = $(contribution).attr('_id');
-        $(contribution).fadeOut(200, function () {
-            $(contribution).remove();
-        });
-        $.post('/notes/delete/' + _id);
-    }
+
+        var contribution = $('.selected');
+        if (contribution.length !== 0) {
+            var _id = $(contribution).attr('_id');
+            $(contribution).fadeOut(200, function () {
+                $(contribution).remove();
+            });
+            $.post('/notes/delete/' + _id);
+        }
+
 };
 
 var resetSearch = function () {
@@ -561,8 +666,9 @@ var updateSelection = function (contribution) {
  *
  * @return returns a contribution element
  */
-var addContribution = function (uuid, date, text, left, top, color) {
-    var contrib = ich.contribution({uuid:uuid, creation:date, text:text});
+var addContribution = function (uuid, date, text, left, top, color, editable) {
+    var contrib = ich.contribution({uuid:uuid, creation:date, text:text,editable:editable});
+
     // workaround for preserving <br>
     $(contrib).find('section').html(text);
     if (left) {
@@ -572,20 +678,27 @@ var addContribution = function (uuid, date, text, left, top, color) {
         contrib.css('top', top);
     }
     contrib.on('click', function onClickContribution(event) {
-        if ($(this).hasClass('noclick')) {
-            $(this).removeClass('noclick');
-        } else {
-            event.stopPropagation();
-            updateSelection(this)
-        }
+
+
+            if ($(this).hasClass('noclick')) {
+                $(this).removeClass('noclick');
+            } else {
+                event.stopPropagation();
+                updateSelection(this)
+            }
+
+
     });
     var section = contrib.find('section');
     getNoteColored(section, color);
     $(section).editable({
+
+
         editBy:'dblclick',
         editClass:'editable',
         type:'textarea',
         onEdit:function () {
+
             var textarea = $(this).find('.editable')[0];
             var oldText = $(textarea).val();
             $(textarea).caret({start:oldText.length, end:oldText.length});
@@ -607,6 +720,7 @@ var addContribution = function (uuid, date, text, left, top, color) {
         }
     });
     contrib.css('position', 'absolute');
+
     contrib.hide().appendTo('div#desk').fadeIn(500);
     $(contrib).draggable(
         {
@@ -634,5 +748,6 @@ var addContribution = function (uuid, date, text, left, top, color) {
         }
     );
     contrib.css('z-index', $('.contribution').size() + 1);
+
     return contrib;
 };

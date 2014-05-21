@@ -204,3 +204,7 @@ exports.updateNoteInSession = function(note) {
 exports.deleteNoteFromSession = function(note) {
     io.sockets.in(note.sessionId).emit('note removed', note);
 }
+
+exports.lockNote=function(session,note){
+    io.sockets.in(session).emit('note lock',note);
+}
