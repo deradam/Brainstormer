@@ -145,23 +145,45 @@ exports.setNoteLock=function(req,res){
         Note.findOne({_id:noteId},function(err,note){
             if(note){
 
-                if(note.creator==creator){
-                    if(editing=='Yes'){
-                        note.editable='Yes';
-                    }else if(editing=='No'){
-                        note.editable='No';
+                Session.findOne({uuid:note.sessionId},function(err,session){
+
+                    if(session){
+
+                        User.findOne({email:session.owner},function(err,user){
+                            if(!err){
+
+                                if(note.creator==creator || creator==user._id){
+                                    if(editing=='Yes'){
+                                        note.editable='Yes';
+                                    }else if(editing=='No'){
+                                        note.editable='No';
+                                    }
+
+                                    note.save(function(err,note){
+
+                                        var noteInf={uuid:note.uuid,lock:editing,creator:note.creator};
+                                        ws.lockNote(note.sessionId,noteInf);
+                                        res.send('1');
+                                    });
+
+                                }else{
+                                    res.send('-3');
+                                }
+
+                            }else{
+                                res.send('User doesnt exist');
+                            }
+                        });
+
+
+
+                    }else{
+                        res.send('session not available');
                     }
 
-                    note.save(function(err,note){
+                });
 
-                        var noteInf={uuid:note.uuid,lock:editing,creator:note.creator};
-                        ws.lockNote(note.sessionId,noteInf);
-                        res.send('1');
-                    });
 
-                }else{
-                    res.send('-3');
-                }
 
             }else{
                 res.send('-2');
@@ -209,7 +231,7 @@ exports.inviteUserToSession=function(req,res,next){
 
                                 session.save(function(err){
                                     if(!err){
-                                        invitation={user:user.email,session:session.uuid,unread:user.unread};
+                                        invitation={user:user.email,title:session.title,session:session.uuid,unread:user.unread};
                                         ws.sendInvitation(invitation);
                                         res.send('1');
                                     }else{
@@ -286,7 +308,7 @@ exports.inviteResponse=function(req,res,next){
                                         permission='Read';
                                     }
 
-                                    res.send({session:session.uuid,Owner:session.owner,visibility:session.visibility,password:hasPassword,members:session.users.length,creation:session.creation,posts:notes.length});
+                                    res.send({session:session.uuid,title:session.title,Owner:session.owner,visibility:session.visibility,password:hasPassword,members:session.users.length,creation:session.creation,posts:notes.length});
                                     ws.addMember(session.users,user.email,user.username,session.uuid,permission);
                                 });
                             });

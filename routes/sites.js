@@ -31,7 +31,7 @@ exports.loginfail=function(req,res,next){
         res.redirect('home');
     }else{
 
-        res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage')});
+        res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage'),identificationhash:req.flash('identification')});
     }
 
 };
@@ -78,6 +78,43 @@ exports.newSession = function (req, res, next) {
     }
 };
 
+function getInvitationNamesAndRender(req,res,user,sessions,notecount){
+
+    var invitationNames=[];
+    var counterSessionNames=0;
+
+    if(user.invitations.length>0){
+
+        for(var j=0;j<user.invitations.length;j++){
+
+            Session.findOne({uuid:user.invitations[j]},function(err,sessionobj){
+
+                invitationNames.push(sessionobj.title);
+
+                counterSessionNames=counterSessionNames+1;
+
+                if(counterSessionNames==user.invitations.length){
+
+
+                    res.render('home',{username:req.session.user,useremail:req.session.email,invitations:user.invitations,invitationNames:invitationNames,unread:user.unread,activeSession:req.session.sessID, sessions:sessions, countnotes:notecount});
+
+
+                }
+
+            });
+
+        }
+
+    }else{
+
+        res.render('home',{username:req.session.user,useremail:req.session.email,invitations:user.invitations,invitationNames:invitationNames,unread:user.unread,activeSession:req.session.sessID, sessions:sessions, countnotes:notecount});
+
+
+
+    }
+
+}
+
 exports.getSessions=function(req,res,next){
 
     res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
@@ -90,9 +127,12 @@ exports.getSessions=function(req,res,next){
     var notes=[];
     var count=0;
 
+
     if(useremail){
 
         User.findOne({email:useremail},function(err,user){
+
+            console.log(user.invitations);
 
             Session.find({$or:[{owner:useremail},{users:{$in:[useremail]}}]},function(err,sessions){
 
@@ -105,10 +145,7 @@ exports.getSessions=function(req,res,next){
                         Notes.find({sessionId:session.uuid}, function(err,note){
 
                             if(err){
-                                errortext.push('Error counting Notes');
-                                errortype=0;
-                                errorsource=0;
-                                req.flash('errortext',errortext);
+
                             }else{
                                 if(typeof note[0]!='undefined'){
                                     notes.push({sessionid:note[0].sessionId,count:note.length});
@@ -117,8 +154,10 @@ exports.getSessions=function(req,res,next){
                                 count=count+1;
 
                                 if(count==sessions.length){
-                                    res.render('home',{username:req.session.user,useremail:req.session.email,invitations:user.invitations,unread:user.unread,activeSession:req.session.sessID, sessions:sessions, countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
+                                    getInvitationNamesAndRender(req,res,user,sessions,notes);
                                 }
+
+
 
                             }
 
@@ -129,7 +168,7 @@ exports.getSessions=function(req,res,next){
 
                 }else{
 
-                    res.render('home',{username:req.session.user,useremail:req.session.email,invitations:user.invitations,activeSession:req.session.sessID,unread:user.unread, sessions:[], countnotes:notes,errortext:req.flash('errortext'),errortype:errortype,errorsource:errorsource});
+                    getInvitationNamesAndRender(req,res,user,[],notes);
 
                 }
 
@@ -137,7 +176,7 @@ exports.getSessions=function(req,res,next){
 
         });
     }else{
-        res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage')});
+        res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage'),identificationhash:req.flash('identification')});
 
     }
 
@@ -231,6 +270,49 @@ exports.deleteSession=function(req,res,next){
 
 };
 
+exports.leaveAllSessions=function(req,res,next){
+
+    var user=req.session.email;
+    var leaveAll=req.body.leaveAll;
+
+
+    if(user && leaveAll=='true'){
+        Session.find({users:{$in:[user]}},function(err,sessions){
+
+            var count=0;
+
+            if(sessions.length>0){
+
+                sessions.forEach(function(session){
+
+                    if(session.users.indexOf(user)!=-1){
+
+                        session.users.splice(session.users.indexOf(user),1);
+                    }
+
+                    session.save(function(err,session){
+
+                        ws.removeMember(session.users,session.uuid,user);
+                        count=count+1;
+
+                        if(count==sessions.length){
+                            res.send('1');
+                        }
+                    });
+
+
+
+                });
+
+            }else{
+                res.send('-1');
+            }
+
+        });
+    }
+
+};
+
 exports.deleteAllSessions=function(req,res,next){
 
     var user=req.session.email;
@@ -251,17 +333,15 @@ exports.deleteAllSessions=function(req,res,next){
                         session.remove(function(err){
 
                             Notes.find({sessionId:session.uuid}).remove(function(err){
-
+                                ws.deleteSession(session.uuid);
                             });
                         });
-                    }else if(session.users.indexOf(user)!=-1){
-                        session.users.splice(session.users.indexOf(user),1);
-                        session.save();
                     }
 
                     count=count+1;
 
                     if(count==sessions.length){
+
                         res.send('1');
                     }
 
@@ -303,14 +383,37 @@ exports.leaveSession=function(req,res,next){
 
 };
 
+function getMemberNames(req,res,session,useremail,members,invitation){
+    var count=0;
+
+    session.users.forEach(function(user){
+
+        User.findOne({email:user},function(err,user){
+            members.push(user.username);
+            count=count+1;
+
+            if(count==session.users.length){
+                user.invitations.splice(invitation);
+                user.save(function(err){
+
+
+                    checkLoginAndRender(req,res,session,useremail,members);
+                });
+
+            }
+
+        });
+
+    });
+
+}
+
 function checkVisibilityAndInvitation(req,res,session,useremail){
 
     var userindex;
     var invitation;
     var errortext=[];
     var members=[];
-    var count=0;
-
 
     if(session.visibility=='Private'){
 
@@ -325,30 +428,13 @@ function checkVisibilityAndInvitation(req,res,session,useremail){
                 if(userindex!=-1 || session.owner==useremail || invitation!=-1){
 
                     if(session.users.length>0){
-                    session.users.forEach(function(user){
 
-                        User.findOne({email:user},function(err,user){
-                            members.push(user.username);
-                            count=count+1;
+                        getMemberNames(req,res,session,useremail,members,invitation);
 
-                            if(count==session.users.length){
-                                user.invitations.splice(invitation);
-                                user.save(function(err){
-
-                                    checkLoginAndRender(req,res,session,useremail,members);
-                                });
-
-                            }
-
-                        });
-
-                    });
                     }else{
+
                         user.invitations.splice(invitation);
-
-
                         members.push(user.username);
-
                         user.save();
                         checkLoginAndRender(req,res,session,useremail,members);
 
@@ -363,7 +449,7 @@ function checkVisibilityAndInvitation(req,res,session,useremail){
             }else{
                 errortext.push('You have to Login first!');
 
-                res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage')});
+                res.render('loginFail',{ loginfailmsg: req.flash('loginfailMessage') ,message:req.flash('signupMessage'),identificationhash:req.flash('identification')});
             }
 
         });
@@ -372,7 +458,22 @@ function checkVisibilityAndInvitation(req,res,session,useremail){
 
     }else{
 
-        checkLoginAndRender(req,res,session,useremail,members);
+        if(useremail ){
+
+
+            User.findOne({email:useremail},function(err,user){
+
+                if(session.users.length>0){
+                    getMemberNames(req,res,session,useremail,members,invitation);
+                }else{
+                    checkLoginAndRender(req,res,session,useremail,members);
+                }
+
+            });
+
+        }else{
+            checkLoginAndRender(req,res,session,useremail,members);
+        }
 
     }
 
@@ -412,6 +513,9 @@ function checkLoginAndRender(req,res,session,useremail,members){
         }else{
             passwordflag=false;
         }
+
+        console.log(members);
+        console.log(session.users);
 
         res.render('session',{owner:session.owner,visibility:session.visibility,username:req.session.user,passwordset:passwordflag,userID:req.session.userID, usermail:req.session.email,members:members,membermails:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
 
@@ -456,7 +560,7 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
 
     session.uuid = sessionId;
     session.creation = Date.now();
-    session.name=req.body.sessiontitle;
+    session.title=req.body.sessiontitle;
     session.visibility=req.body.visibility;
 
 

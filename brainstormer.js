@@ -105,7 +105,8 @@ app.post('/user/changepermission',routes.services.changeMemberPermission);
 app.post('/user/inviteresponse',routes.services.inviteResponse);
 app.post('/user/changepassword',routes.services.changeUserPass);
 app.post('/invitationscounter/reset',routes.services.resetUnreadInvitations);
-app.post('/deleteSessions',routes.sites.deleteAllSessions);
+app.post('/sessions/remove',routes.sites.deleteAllSessions);
+app.post('/sessions/leave',routes.sites.leaveAllSessions);
 
 app.post('/signup', passp.signUp,routes.sites.loginfail);
 app.post('/login',passp.logIn,routes.sites.loginfail);

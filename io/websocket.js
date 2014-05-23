@@ -110,6 +110,21 @@ exports.addMember = function(members,user,username,session,permission) {
     }
 }
 
+exports.sessionOwner=function(members,session,user,username){
+
+    for(var i=0;i<members.length;i++){
+
+        for(var j=0;j<clients.length;j++){
+            if(clients[j].user==members[i] && clients[j].user!=user){
+
+                io.sockets.socket(clients[j].socketId).emit('session owner', {user:user,username:username,session:session});
+            }
+        }
+
+    }
+
+}
+
 exports.MemberPermissionChanged=function(session,user,permission){
 
     var message={user:user,permission:permission};

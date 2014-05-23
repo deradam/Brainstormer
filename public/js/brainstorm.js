@@ -321,6 +321,7 @@ $('document').ready(function () {
         var noteId=$('.selected').attr('_id');
         var creator=$('#userID').val();
 
+
         $.post('/note/setedit',{note_id:noteId,editable:'Yes',creator:creator});
     });
 
@@ -566,6 +567,10 @@ $('document').ready(function () {
         }
 
 
+    });
+
+    socket.on('session owner',function(){
+        window.location.reload();
     });
 });
 

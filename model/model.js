@@ -49,7 +49,7 @@ var user = new Schema({
 var Sessions = new Schema({
     uuid: String,
     creation: Number,
-    name: String,
+    title: String,
     visibility: String,
     password:String,
     salt:Buffer,
