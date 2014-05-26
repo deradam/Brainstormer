@@ -138,7 +138,7 @@ exports.setSessionPass=function(members,owner,session){
     for(var i=0;i<members.length;i++){
 
         for(var j=0;j<clients.length;j++){
-            if(clients[j].user==members[i] && clients[j].user!=owner){
+            if(clients[j].user==members[i] ){
 
                 io.sockets.socket(clients[j].socketId).emit('password set',{session:session});
             }
@@ -153,7 +153,7 @@ exports.sessionPassRemoved=function(members,owner,session){
     for(var i=0;i<members.length;i++){
 
         for(var j=0;j<clients.length;j++){
-            if(clients[j].user==members[i] && clients[j].user!=owner){
+            if(clients[j].user==members[i] ){
 
                 io.sockets.socket(clients[j].socketId).emit('password removed',{session:session});
             }
@@ -175,6 +175,23 @@ exports.sessionVisibilityChanged=function(members,session,visibility){
         }
 
     }
+
+};
+
+exports.sessionTitleChanged=function(members,session,title){
+
+    for(var i=0;i<members.length;i++){
+
+        for(var j=0;j<clients.length;j++){
+            if(clients[j].user==members[i]){
+
+                io.sockets.socket(clients[j].socketId).emit('title changed',{session:session,title:title});
+            }
+        }
+
+    }
+
+
 
 };
 

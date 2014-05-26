@@ -443,7 +443,7 @@ exports.resetSessionPass=function(req,res,next){
                 session.password='';
 
                 session.save(function(err){
-                    ws.sessionPassRemoved(session.users,owner,session.uuid);
+                    ws.sessionPassRemoved(session.users,session.owner,session.uuid);
                     res.send('1');
                 });
             }else{
@@ -575,4 +575,29 @@ exports.resetUnreadInvitations=function(req,res){
 
 
     }
+};
+
+exports.changeSessionTitle=function(req,res,next){
+
+    var newTitle=req.body.newTitle;
+    var sessionId=req.body.sessionID;
+
+    Session.findOne({uuid:sessionId},function(err,session){
+
+        if(session){
+
+            if(newTitle.length>0){
+                session.title=newTitle;
+            }else{
+                session.title='No Title';
+            }
+
+            session.save(function(err,session){
+                ws.sessionTitleChanged(session.users,session.uuid,session.title);
+                res.send('1');
+            });
+        }else{
+            res.send('session not existing')
+        }
+    });
 }

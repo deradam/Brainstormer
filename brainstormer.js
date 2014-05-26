@@ -84,6 +84,11 @@ var routes = require('./routes');
 //app.get('/session/new/:sessionid?', routes.sites.newSession);
 //app.get('/session/:id', routes.sites.getSession);
 
+app.get('/landingpage',function(req,res){
+
+    res.render('landing-Page');
+});
+
 app.get('/',passp.checkAuth, routes.sites.indexNew);
 app.post('/session/new/:sessionid?', routes.sites.newSession);
 app.get('/session/:id', routes.sites.getSession);
@@ -107,6 +112,8 @@ app.post('/user/changepassword',routes.services.changeUserPass);
 app.post('/invitationscounter/reset',routes.services.resetUnreadInvitations);
 app.post('/sessions/remove',routes.sites.deleteAllSessions);
 app.post('/sessions/leave',routes.sites.leaveAllSessions);
+app.post('/session/settings/change',routes.sites.changeSessionSettings);
+app.post('/session/title',routes.services.changeSessionTitle);
 
 app.post('/signup', passp.signUp,routes.sites.loginfail);
 app.post('/login',passp.logIn,routes.sites.loginfail);

@@ -17,6 +17,8 @@ $('document').ready(function () {
 
     var clickTimer = 0;
     desk.on('click', function (e) {
+        $('.selected').removeClass('selected');
+        $('.locked').removeClass('locked');
         if (e.originalEvent.detail === 1) {
             clickTimer = setTimeout(function() {
 
@@ -112,6 +114,7 @@ $('document').ready(function () {
     });
     $('input[type="search"]').keyup(function (event) {
 
+
         event.stopPropagation();
         if (event.which == 27) {
             resetSearch();
@@ -195,7 +198,7 @@ $('document').ready(function () {
         var permission= $.trim($('#permissionBtn').text());
 
         if(permission=='Permission'){
-            alert("huhu");
+
             $('#UserSettingsLabel').after('<div class="alert alert-danger text-center">Please set Permission! </div>');
         }else{
             $.post('/user/changepermission',{user:clickedMember,session:sessionId,permission:permission},function(){
@@ -220,7 +223,7 @@ $('document').ready(function () {
 
         if(!sessionpassword || !sessionpasswordrtp){
 
-            $('#setPasswordLabel').after('<div class="alert alert-danger text-center">Pls set Password! </div>');
+            $('#setPasswordLabel').after('<div class="alert alert-danger text-center">Please set Password! </div>');
 
         }else if(sessionpassword==sessionpasswordrtp){
 
@@ -276,7 +279,7 @@ $('document').ready(function () {
         var owner=$('#usermail').val();
 
         if(!oldpass || !newpass){
-            $('#changePassTitle').after('<div class="alert alert-danger text-center">Pls fill both fields!</div>');
+            $('#changePassTitle').after('<div class="alert alert-danger text-center">Please fill in both fields!</div>');
         }else{
 
             $.post('/user/changepassword',{user:owner,oldpass:oldpass,newpass:newpass},function(result){
@@ -291,6 +294,17 @@ $('document').ready(function () {
             });
 
         }
+    });
+
+    $('#modal-container-renameSession').on('show.bs.modal', function (e) {
+        $('#sessionNameNew').val($('#sessionTitle').attr('title'));
+    })
+
+    $('#changeSessionTitleBtn').on('click',function(){
+        var newTitle= $.trim($('#sessionNameNew').val());
+        $('#modal-container-renameSession').modal('hide');
+
+        $.post('/session/title',{sessionID:sessionId,newTitle:newTitle});
     });
 
     $('#setToPublicBtn').on('click',function(){
@@ -318,11 +332,55 @@ $('document').ready(function () {
 
         //$('.contribution[creator=' + $('#userID').val() + ']').addClass('selected');
 
+
+
         var noteId=$('.selected').attr('_id');
         var creator=$('#userID').val();
 
 
-        $.post('/note/setedit',{note_id:noteId,editable:'Yes',creator:creator});
+        $.post('/note/setedit',{note_id:noteId,editable:'Yes',creator:creator},function(result){
+
+
+            if(result=='-3'){
+                var stack_context = {"dir1": "down", "dir2": "left", "context": $('.selected')};
+
+                new PNotify({
+
+                    text: 'Contribution is locked!',
+                    stack:stack_context,
+                    styling: "bootstrap3",
+                    shadow: false,
+                    delay: 1000,
+                    type: 'error',
+                    icon: 'glyphicon glyphicon-edit'
+
+
+                });
+            }
+
+            if(result=='1'){
+
+                $('.selected').attr('editable','Yes');
+
+                var stack_context = {"dir1": "down", "dir2": "left", "context": $('.selected')};
+
+                new PNotify({
+
+                    text: 'Contribution is editable!',
+                    stack:stack_context,
+                    styling: "bootstrap3",
+                    shadow: false,
+                    delay: 1000,
+                    type: 'success',
+                    icon: 'glyphicon glyphicon-edit'
+
+
+                });
+
+            }
+
+        });
+
     });
 
     $('#noteditableBtn').on('click',function(){
@@ -332,7 +390,43 @@ $('document').ready(function () {
 
         var noteId=$('.selected').attr('_id');
         var creator=$('#userID').val();
-        $.post('/note/setedit',{note_id:noteId,editable:'No',creator:creator});
+        $.post('/note/setedit',{note_id:noteId,editable:'No',creator:creator},function(result){
+            if(result=='-3'){
+                var stack_context = {"dir1": "down", "dir2": "left", "context": $('.selected')};
+
+                new PNotify({
+
+                    text: 'Contribution is locked!',
+                    stack:stack_context,
+                    styling: "bootstrap3",
+                    shadow: false,
+                    delay: 1000,
+                    type: 'error',
+                    icon: 'glyphicon glyphicon-edit'
+
+                });
+            }
+
+            if(result=='1'){
+                $('.selected').attr('editable','No');
+
+                var stack_context = {"dir1": "down", "dir2": "left", "context": $('.selected')};
+
+                new PNotify({
+
+                    text: 'Contribution is locked!',
+                    stack:stack_context,
+                    styling: "bootstrap3",
+                    shadow: false,
+                    delay: 1000,
+                    type: 'success',
+                    icon: 'glyphicon glyphicon-edit'
+
+
+                });
+
+            }
+        });
     });
 
     var sessionOwnerID;
@@ -394,7 +488,21 @@ $('document').ready(function () {
     });
 
     socket.on('visibility changed',function(data){
+
         window.location.reload(true);
+    });
+
+    socket.on('title changed',function(data){
+
+        var title=data.title;
+
+        $('#sessionTitle').attr('title',title);
+
+        if(title.length>15){
+            title=data.title.substring(0,12)+'...';
+        }
+
+        $('#sessionTitle > a ').empty().append('<span class="glyphicon glyphicon glyphicon-th-large"></span>'+title);
     });
 
 
@@ -409,9 +517,9 @@ $('document').ready(function () {
             permissionsymbol='<span class="glyphicon glyphicon-pencil"></span>';
         }
 
-        var test= '<li > <a href=""  data-toggle="modal" data-target="#modal-container-userSettings"><span class="glyphicon glyphicon-user"></span>'+member.user+permissionsymbol+'  </a> </li>';
+        var test= '<li > <a href=""  data-toggle="modal" data-target="#modal-container-userSettings"><span class="glyphicon glyphicon-user pull-left"></span>'+member.user+permissionsymbol+'  </a> </li>';
 
-        $('#members').prepend('<li data-text="'+member.user+'"> <a href=""  data-toggle="modal" data-target="#modal-container-userSettings"><span class="glyphicon glyphicon-user"></span>'+member.username+' '+permissionsymbol+'  </a> </li>');
+        $('#members').prepend('<li data-text="'+member.user+'"> <a href=""  data-toggle="modal" data-target="#modal-container-userSettings"><span class="glyphicon glyphicon-user pull-left"></span>'+member.username+' '+permissionsymbol+'  </a> </li>');
 
 
      });
@@ -434,7 +542,7 @@ $('document').ready(function () {
 
     socket.on('password removed',function(){
 
-        $('#lockSymbol').hide();
+        $('.lockSymbol').hide();
 
     });
 
@@ -487,7 +595,8 @@ $('document').ready(function () {
 
                 $('.contribution > section').each(function(i,obj){
 
-                    alert($(obj).parent().attr('creator'));
+
+
                     if($(obj).parent().attr('creator')==userID || $(obj).parent().attr('editable')=='Yes'){
                         $(obj).editable('enable');
                         $(obj).parent().draggable('enable');
@@ -553,15 +662,55 @@ $('document').ready(function () {
 
         var userID=$('#userID').val();
 
+        if(note.lock=='Yes'){
+            $('.contribution[uuid=' + note.uuid + ']').attr('editable','Yes');
+            $('.contribution[uuid=' + note.uuid + ']').removeClass('locked');
+
+        }else if(note.lock=='No'){
+            $('.contribution[uuid=' + note.uuid + ']').attr('editable','No');
+            $('.contribution[uuid=' + note.uuid + ']').removeClass('selected');
+            $('.contribution[uuid=' + note.uuid + ']').addClass('locked');
+            $('.contribution[uuid=' + note.uuid + ']').addClass('selected');
+        }
 
         if(note.creator!=userID && userID!=sessionOwnerID){
             if(note.lock=='Yes'){
                 $('.contribution[uuid=' + note.uuid + ']').attr('editable','Yes').draggable('enable');
                 $('.contribution[uuid=' + note.uuid + '] > section').editable('enable');
+
+                var stack_context = {"dir1": "down", "dir2": "left", "context": $('.contribution[uuid=' + note.uuid + ']')};
+
+                new PNotify({
+
+                    text: 'Contribution unlocked!',
+                    stack:stack_context,
+                    styling: "bootstrap3",
+                    shadow: false,
+                    delay: 1000,
+                    type: 'info',
+                    icon: 'glyphicon glyphicon-edit'
+
+                });
             }else if(note.lock=='No'){
 
                 $('.contribution[uuid=' + note.uuid + ']').attr('editable','No').draggable('disable');
                 $('.contribution[uuid=' + note.uuid + '] > section').editable('disable');
+
+                var stack_context = {"dir1": "down", "dir2": "left", "context": $('.contribution[uuid=' + note.uuid + ']')};
+
+                new PNotify({
+
+                    text: 'Contribution locked!',
+                    stack:stack_context,
+                    styling: "bootstrap3",
+                    shadow: false,
+                    delay: 1000,
+                    type: 'info',
+                    icon: 'glyphicon glyphicon-edit'
+
+
+
+                });
 
             }
         }
@@ -673,12 +822,29 @@ var updateSelection = function (contribution) {
     $('input[type="search"]').blur();
     $('input[name="topic"]').blur();
     var selected = $('.selected');
+
+
     if (selected.length > 0 && selected[0] !== contribution) {
         selected.removeClass('selected');
+        selected.removeClass('locked');
         $(contribution).addClass('selected');
+
     } else {
         $(contribution).toggleClass('selected');
+
     }
+
+    if($(contribution).attr('editable')=='No'){
+        $(contribution).removeClass('selected');
+        $(contribution).addClass('locked');
+        $(contribution).addClass('selected');
+    }else{
+        $(contribution).addClass('selected');
+        $(contribution).removeClass('locked');
+
+    }
+
+
     console.log('updating selection');
 };
 
@@ -709,10 +875,13 @@ var addContribution = function (uuid, date, text, left, top, color, editable) {
             if ($(this).hasClass('noclick')) {
                 $(this).removeClass('noclick');
             } else {
-                event.stopPropagation();
-                updateSelection(this)
-            }
 
+
+                event.stopPropagation();
+
+                updateSelection(this)
+
+            }
 
     });
     var section = contrib.find('section');
@@ -726,6 +895,7 @@ var addContribution = function (uuid, date, text, left, top, color, editable) {
         onEdit:function () {
 
             var textarea = $(this).find('.editable')[0];
+            console.log(textarea);
             var oldText = $(textarea).val();
             $(textarea).caret({start:oldText.length, end:oldText.length});
             $(textarea).on('keyup', function () {

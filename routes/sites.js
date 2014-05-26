@@ -517,7 +517,7 @@ function checkLoginAndRender(req,res,session,useremail,members){
         console.log(members);
         console.log(session.users);
 
-        res.render('session',{owner:session.owner,visibility:session.visibility,username:req.session.user,passwordset:passwordflag,userID:req.session.userID, usermail:req.session.email,members:members,membermails:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
+        res.render('session',{owner:session.owner,title:session.title,visibility:session.visibility,username:req.session.user,passwordset:passwordflag,userID:req.session.userID, usermail:req.session.email,members:members,membermails:session.users,read:session.read, errortext:req.flash('errMessage'), loadedsession:session.uuid});
 
     } else {
         res.redirect('/');
@@ -549,6 +549,7 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
     var session = new Session();
     var email=req.session.email;
     var sessionpassword=req.body.sessionpassword;
+    var title=req.body.sessiontitle;
 
     var errortext=[];
     var errortype;
@@ -560,7 +561,8 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
 
     session.uuid = sessionId;
     session.creation = Date.now();
-    session.title=req.body.sessiontitle;
+    session.title='No Title';
+    console.log(req.body.visibility);
     session.visibility=req.body.visibility;
 
 
@@ -573,6 +575,10 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
                 next(new Error('Error finding User ' + user));
 
             } else {
+
+                if(title){
+                    session.title=title;
+                }
 
                 if(sessionpassword){
 
@@ -689,7 +695,7 @@ exports.checkPasswordAndRedirect=function(req,res){
 
     }else{
 
-        errortext.push('Pls enter the Password!');
+        errortext.push('Please enter the Password!');
         errortype=0;
         errorsource=0;
 
@@ -836,6 +842,90 @@ exports.saveNewPassAndRedirect=function(req,res){
         });
     }
 
+
+};
+
+exports.changeSessionSettings=function(req,res,next){
+
+    var sessionTitle=req.body.title;
+    var visibility=req.body.visibility;
+    var sessionpassword=req.body.password;
+    var sessionID=req.body.sessionID;
+    var toDo=req.body.todo;
+    var oldPassword=req.body.oldpassword;
+    var hash;
+    var salt;
+
+
+    Session.findOne({uuid:sessionID},function(err,session){
+
+        if(session){
+
+            if(session.visibility!=visibility){
+                session.visibility=visibility;
+
+                var membercopie=session.users.slice();
+
+                if(visibility=='Public'){
+                    session.visibility='Public';
+                }else if(visibility=='Private'){
+                    session.visibility='Private';
+
+                    session.users=[];
+                    session.users.push(session.owner);
+                    session.read=[];
+
+                }
+                ws.sessionVisibilityChanged(membercopie,session.uuid,visibility);
+            }
+
+            if(sessionTitle!=session.title){
+                session.title=sessionTitle;
+                ws.sessionTitleChanged(session.users,session.uuid,sessionTitle);
+            }
+
+            if(toDo=='change password' ){
+                var sessionsalt=session.salt;
+                var hash=crypt.createHmac("sha1",sessionsalt).update(oldPassword).digest("hex");
+
+                if(hash==session.password){
+                    console.log('hierhooo');
+                    var newsalt= crypt.randomBytes(256);
+                    var newpass=crypt.createHmac("sha1",newsalt).update(oldPassword).digest("hex");
+                    session.salt=newsalt;
+                    session.password=newpass;
+                    ws.setSessionPass(session.users,session.owner,session.uuid);
+                    res.send('1');
+
+                }else{
+                    res.send('-3');
+                }
+
+            }else if(toDo=='set password'){
+
+
+                salt= crypt.randomBytes(256);
+                hash=crypt.createHmac("sha1",salt).update(sessionpassword).digest("hex");
+                session.password=hash;
+                session.salt=salt;
+                ws.setSessionPass(session.users,session.owner,session.uuid);
+                res.send('2');
+
+            }
+
+
+
+            session.save(function(err){
+
+                res.send('Session Changed');
+            });
+
+
+        }else{
+            res.send('Session doesnt exist!')
+        }
+
+    });
 
 };
 
