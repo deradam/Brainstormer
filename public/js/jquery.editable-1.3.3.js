@@ -1,3 +1,8 @@
+
+
+
+
+
 (function($){
 /*
  * Editable 1.3.3
@@ -8,6 +13,13 @@
  *
  * Date: Mar 02 2009
  */
+    /*
+    * Edited by Süleyman Güzeldal
+    *
+    * Cursor in Textarea is now at the End.
+    *
+    *
+    * */
 $.fn.editable = function(options){
 	var defaults = {
 		onEdit: null,
@@ -121,7 +133,7 @@ $.editableFactory = {
 	},
 	'textarea': {
 		toEditable: function($this,options){
-			$('<textarea/>').appendTo($this)
+			$('<textarea/>').appendTo($this).focus()
 							.val($this.data('editable.current').replace(/\<br\>/g, '\n'));
 		},
 		getValue: function($this,options){

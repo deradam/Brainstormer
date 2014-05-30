@@ -1,6 +1,7 @@
 // socket.io socket reference
 var socket;
 
+
 $('document').ready(function () {
     var url = window.location.href;
     var sessionId = url.substring(url.lastIndexOf('/') + 1, url.length);
@@ -60,6 +61,10 @@ $('document').ready(function () {
             //alert(e.color);
      });
 
+
+
+
+
     $('div#add').on('click', addNote);
     $('div#white').on('click', function () {
         var contribution = $('.selected');
@@ -99,6 +104,8 @@ $('document').ready(function () {
 
 
     });
+
+    $(document).on('doubleTap', '.someItem', function(){ console.log('double tap'); })
 
     $('input[name="topic"]').keyup(function (event) {
         var code = event.which;
@@ -189,6 +196,7 @@ $('document').ready(function () {
         $('#modal-container-userSettings').modal('hide');
 
     });
+
 
 
     $('#changeSettings').on('click',function(){
@@ -382,6 +390,8 @@ $('document').ready(function () {
         });
 
     });
+
+
 
     $('#noteditableBtn').on('click',function(){
 
@@ -869,7 +879,13 @@ var addContribution = function (uuid, date, text, left, top, color, editable) {
     if (top) {
         contrib.css('top', top);
     }
+
+
+
+
+
     contrib.on('click', function onClickContribution(event) {
+
 
 
             if ($(this).hasClass('noclick')) {
@@ -889,12 +905,15 @@ var addContribution = function (uuid, date, text, left, top, color, editable) {
     $(section).editable({
 
 
+
         editBy:'dblclick',
         editClass:'editable',
         type:'textarea',
         onEdit:function () {
 
+
             var textarea = $(this).find('.editable')[0];
+            textarea.focus();
             console.log(textarea);
             var oldText = $(textarea).val();
             $(textarea).caret({start:oldText.length, end:oldText.length});

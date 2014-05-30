@@ -67,7 +67,7 @@ app.configure('production', function () {
 
 // setting up server
 logger.info('Server listening on localhost:3000');
-var server = app.listen(3000);
+var server = app.listen(8080);
 
 // setting up the websocket connection
 var io = require('./io/websocket');
