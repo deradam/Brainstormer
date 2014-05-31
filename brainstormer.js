@@ -67,7 +67,7 @@ app.configure('production', function () {
 
 // setting up server
 logger.info('Server listening on localhost:3000');
-var server = app.listen(8080);
+var server = app.listen(3000);
 
 // setting up the websocket connection
 var io = require('./io/websocket');
@@ -85,8 +85,9 @@ var routes = require('./routes');
 //app.get('/session/:id', routes.sites.getSession);
 
 app.get('/landingpage',function(req,res){
+    res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
 
-    res.render('landing-Page');
+    res.render('landing-Page', { message: req.flash('signupMessage'),inputerror: req.flash('inputerror')});
 });
 
 app.get('/',passp.checkAuth, routes.sites.indexNew);

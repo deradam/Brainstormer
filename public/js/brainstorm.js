@@ -127,20 +127,46 @@ $('document').ready(function () {
             resetSearch();
         } else {
             var text = $('input[type="search"]').val();
-            if (text.length > 0) {
-                var matching = $('.contribution:contains(' + text + ')');
-                matching.removeClass('notmatching');
-                matching.addClass('matching');
-                var notmatching = $('.contribution:not(:contains(' + text + '))');
-                notmatching.removeClass('matching');
-                notmatching.addClass('notmatching');
-            } else {
+
+            if(text=='my posts'){
+
                 var contributions = $('.contribution');
                 contributions.removeClass('matching');
                 contributions.removeClass('notmatching');
+
+                $('.contribution[creator='+$('#userID').val()+']').removeClass('notmypost');
+                $('.contribution[creator='+$('#userID').val()+']').addClass('mypost');
+
+                $('.contribution:not([creator='+$('#userID').val()+'])').removeClass('mypost');
+                $('.contribution:not([creator='+$('#userID').val()+'])').addClass('notmypost');
+
+            }else{
+                if (text.length > 0) {
+
+
+                    var matching = $('.contribution:contains(' + text + ')');
+                    matching.removeClass('notmatching');
+                    matching.addClass('matching');
+                    var notmatching = $('.contribution:not(:contains(' + text + '))');
+                    notmatching.removeClass('matching');
+                    notmatching.addClass('notmatching');
+
+
+                } else {
+                    var contributions = $('.contribution');
+                    contributions.removeClass('matching');
+                    contributions.removeClass('notmatching');
+                    contributions.removeClass('mypost');
+                    contributions.removeClass('notmypost');
+                }
             }
+
+
+
         }
     });
+
+
 
 
 
@@ -354,7 +380,7 @@ $('document').ready(function () {
 
                 new PNotify({
 
-                    text: 'Contribution is locked!',
+                    text: 'Not your Post!',
                     stack:stack_context,
                     styling: "bootstrap3",
                     shadow: false,
@@ -406,7 +432,7 @@ $('document').ready(function () {
 
                 new PNotify({
 
-                    text: 'Contribution is locked!',
+                    text: 'Not your Post!',
                     stack:stack_context,
                     styling: "bootstrap3",
                     shadow: false,
