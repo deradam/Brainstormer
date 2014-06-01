@@ -31,10 +31,22 @@ $('document').ready(function () {
         var source = event.target.tagName.toLowerCase();
         var actualUser=$('#userID').val();
         var creatorOfselectedNote=$('.selected').attr('creator');
-        var noteLock=$('.selected').attr('editable');
+        var editable=$('.selected').attr('editable');
         var permissionRead=$('#noteinput').attr('disabled');
-        if (source != "input" && source != "textarea") {
-            if ((event.which == 8 || event.which == 46) && ((!permissionRead &&(noteLock=='Yes' || creatorOfselectedNote==actualUser))) || actualUser==sessionOwnerID  ) {
+        if (source != "input" && source != "textarea" ) {
+
+            if(!$('#userID').val()){
+                if(editable=='Yes' && (event.which == 8 || event.which == 46)){
+                    event.stopPropagation();
+                    event.preventDefault();
+                    removeSelectedNote();
+                }else if (event.which == 27) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    resetSearch();
+                }
+            }
+            else if ((event.which == 8 || event.which == 46) && ((!permissionRead &&(editable=='Yes' || creatorOfselectedNote==actualUser)) || actualUser==sessionOwnerID )   ) {
 
                 event.stopPropagation();
                 event.preventDefault();
@@ -105,7 +117,7 @@ $('document').ready(function () {
 
     });
 
-    $(document).on('doubleTap', '.someItem', function(){ console.log('double tap'); })
+
 
     $('input[name="topic"]').keyup(function (event) {
         var code = event.which;
@@ -483,15 +495,33 @@ $('document').ready(function () {
             contribution.attr('editable', note.editable);
             contribution.attr('creator', note.creator);
 
-            if($('#userID').val()!=sessionOwnerID){
+            if($('#userID').val()!=sessionOwnerID ){
+
+
                 if($('#noteinput').attr('disabled')){
+
                     $('.contribution[uuid="'+note.uuid+'"] > section').editable('disable');
                     $('.contribution[uuid="'+note.uuid+'"]').draggable('disable');
-                }else if(($('#userID').val()==note.creator || note.editable=='Yes') && !$('#noteinput').attr('disabled')){
+
+                }else if(!$('#userID').val()){
+
+                    if(note.editable=='Yes'){
+                        $('.contribution[uuid="'+note.uuid+'"] > section').editable('enable');
+                        $('.contribution[uuid="'+note.uuid+'"]').draggable('enable');
+                    }else{
+
+                        $('.contribution[uuid="'+note.uuid+'"] > section').editable('disable');
+                        $('.contribution[uuid="'+note.uuid+'"]').draggable('disable');
+
+                    }
+
+
+                }else if( (note.editable=='Yes' || note.creator==$('#userID').val() ) ){
+
                     $('.contribution[uuid="'+note.uuid+'"] > section').editable('enable');
                     $('.contribution[uuid="'+note.uuid+'"]').draggable('enable');
 
-                }else{
+                }else {
                     $('.contribution[uuid="'+note.uuid+'"] > section').editable('disable');
                     $('.contribution[uuid="'+note.uuid+'"]').draggable('disable');
 
@@ -661,6 +691,7 @@ $('document').ready(function () {
             contribution.attr('editable', note.editable);
             limitCoordinates(contribution, null, null);
             contribution.attr('_id', note._id);
+            contribution.attr('creator', note.creator);
 
 
             if($('#noteinput').attr('disabled')){
@@ -709,7 +740,8 @@ $('document').ready(function () {
             $('.contribution[uuid=' + note.uuid + ']').addClass('selected');
         }
 
-        if(note.creator!=userID && userID!=sessionOwnerID){
+        if((note.creator!=userID && userID!=sessionOwnerID) || !userID){
+
             if(note.lock=='Yes'){
                 $('.contribution[uuid=' + note.uuid + ']').attr('editable','Yes').draggable('enable');
                 $('.contribution[uuid=' + note.uuid + '] > section').editable('enable');
@@ -963,6 +995,7 @@ var addContribution = function (uuid, date, text, left, top, color, editable) {
     contrib.css('position', 'absolute');
 
     contrib.hide().appendTo('div#desk').fadeIn(500);
+
     $(contrib).draggable(
         {
             containment:'#desk',

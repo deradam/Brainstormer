@@ -391,16 +391,19 @@ function getMemberNames(req,res,session,useremail,members,invitation){
         User.findOne({email:user},function(err,user){
             members.push(user.username);
             count=count+1;
+            user.invitations.splice(invitation);
 
-            if(count==session.users.length){
-                user.invitations.splice(invitation);
-                user.save(function(err){
 
+            user.save(function(err){
+
+                if(count==session.users.length){
 
                     checkLoginAndRender(req,res,session,useremail,members);
-                });
 
-            }
+                }
+
+            });
+
 
         });
 
@@ -502,7 +505,13 @@ function checkLoginAndRender(req,res,session,useremail,members){
 
                 User.findOne({email:useremail},function(err,user){
                     members.push(user.username);
-                    ws.addMember(session.users,useremail,user.username,session.uuid,'Write');
+                    user.invitations.splice(user.invitations.indexOf(session.uuid),1);
+                    user.unread=user.unread-1;
+
+                    user.save(function(err){
+                        ws.addMember(session.users,useremail,user.username,session.uuid,'Write');
+                    });
+
                 });
 
             });
