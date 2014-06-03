@@ -245,7 +245,7 @@ exports.inviteUserToSession=function(req,res,next){
 
                         }else{
 
-                            console.log("nee");
+
                             res.send('-3');
                         }
                     }else{
@@ -600,4 +600,65 @@ exports.changeSessionTitle=function(req,res,next){
             res.send('session not existing')
         }
     });
+}
+
+exports.searchPosts=function(req,res,next){
+
+    var useremail=req.session.email;
+    var text=req.body.text;
+    var sessionIDs=[];
+    var counter=0;
+
+    if(useremail && text){
+
+        Session.find({$or:[{owner:useremail},{users:{$in:[useremail]}}]},function(err,sessions){
+
+            if(sessions.length >0){
+
+                sessions.forEach(function(session){
+
+
+
+                    if(session){
+
+                        Note.findOne({$and:[{sessionId:session.uuid},{text:{$regex : ".*"+text+".*"}}]},function(err,note){
+
+                            counter=counter+1;
+                            if(note){
+
+                                    sessionIDs.push(note.sessionId);
+
+                            }
+
+                            if(counter==sessions.length){
+                                console.log(sessionIDs);
+
+                                if(sessionIDs.length>0){
+                                    res.send({sessions:sessionIDs});
+                                }else{
+                                    res.send('no Note found');
+                                }
+
+                            }
+
+
+                        });
+
+                    }else{
+                        res.send('session deleted');
+                    }
+
+                });
+
+            }else{
+                res.send('0');
+            }
+
+
+
+        });
+
+    }else{
+        res.send('-1');
+    }
 }

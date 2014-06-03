@@ -33,7 +33,8 @@ app.configure(function () {
     app.set('view engine', 'ejs');
     app.set('view options', {layout:false});
     app.use(express.methodOverride());
-    app.use(express.bodyParser());
+    app.use(express.json());
+    app.use(express.urlencoded());
     app.use(express.cookieParser());
 
     app.use(passport.initialize());
@@ -98,6 +99,7 @@ app.post('/session/leave',routes.sites.leaveSession);
 app.post('/session/setpassword',routes.services.setSessionPass);
 app.post('/session/resetPassword',routes.services.resetSessionPass);
 app.post('/session/visibility',routes.services.changeVisibility);
+app.post('/sessions/search/posts',routes.services.searchPosts);
 
 app.get('/reset/:token?',routes.sites.checkToken);
 app.post('/user/resetpass',routes.sites.createToken);
