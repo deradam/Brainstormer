@@ -1,0 +1,1251 @@
+<!--<Created>with JetBrains WebStorm.</Created><User><giemza></giemza></User><Date><05 class="12 12"></05></Date><Time><21:18></21:18></Time>--><!DOCTYPE html>
+<html>
+<head>
+
+	<title>Brainstormer Home</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<script src="/js/jquery-1.10.2.min.js"></script>
+	<script src="/js/jquery-ui-1.10.4.custom.js"></script>
+	<script src="/js/jquery.ui.touch-punch.js"></script>
+	<script src="/js/bootstrap.min.js"></script>
+
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="/js/ICanHaz.js"></script>
+	<script src="/js/jquery.tablesorter.js"></script>
+	<script src="/js/Math.uuid.js"></script>
+	<script src="/js/jquery.editable-1.3.3.js"></script>
+	<script src="/js/jquery.ui.touch-punch.js"></script>
+	<script src="/js/jquery.caret.1.02.min.js"></script>
+	<script src="/js/moment-with-langs.js"></script>
+
+	<link rel="stylesheet" href="/font-awesome-4.1.0/css/font-awesome.min.css">
+	<link href="/css/home.css" rel="stylesheet">
+	<link href="/css/bootstrap.css" rel="stylesheet">
+
+	<link href="/css/home.css" rel="stylesheet">
+
+
+
+
+	<script>
+
+		var socket;
+		$(function(){
+
+			if($('input[type="search"]').val().length>0){
+				$('input[type="search"]').val('');
+			}
+		
+
+            $('input[type="search"]').keyup(function (event) {
+                var text = $('input[type="search"]').val();
+	            $('.matches').removeClass('matches');
+                event.stopPropagation();
+
+                if (event.which == 27) {
+                    $('input[type="search"]').val('');
+
+                } else if(text.length==0){
+                    $('.matches').removeClass('matches');
+                    $('.session').show();
+                }else if(text.length>0){
+
+
+                    $.post('/sessions/search/posts',{text:text},function(result){
+                        var sessions=result.sessions;
+                        if(sessions){
+
+
+                            $.each(sessions,function(i,session){
+                                $('tr[data-url="'+session+'"]').addClass('matches');
+                            });
+
+
+
+                            $('tbody tr').each(function(i,session){
+
+                                if($(session).hasClass('matches')){
+
+                                    $(session).show();
+
+                                }else{
+                                    $(session).hide();
+
+                                };
+                            });
+
+
+                        }else if(result=='no Note found'){
+
+                            $('tbody tr').each(function(i,session){
+
+                                    $(session).hide();
+                            });
+
+                        }
+                    });
+
+                }
+
+            });
+
+			$('.time').popover({placement:"top",trigger:"hover"});
+
+			$('.modal').on('hidden.bs.modal', function () {
+				$('.modal input:not([type="hidden"])').val('');
+				$('input[type="checkbox"]').prop('checked', false);
+				$('.modal  input').removeAttr('disabled');
+
+			});
+
+
+			$('.optionPublic').css({display:"none"}).on('click',function(){
+				$(this).css({display:"none"});
+				$('.visibilityBtn').empty();
+				$('.visibilityBtn').append('<span class="glyphicon glyphicon-globe"></span> Public<span class="caret"></span>');
+				$('#vsbility').val("Public");
+
+				$('.optionPrivate').css({display:"block"});
+			});
+
+			$('.optionPrivate').on('click',function(){
+				$(this).css({display:"none"});
+				$('.visibilityBtn').empty();
+				$('.visibilityBtn').append('<i class="fa fa-users"></i> Private<span class="caret"></span>');
+				$('#vsbility').val('Private');
+
+				$('.optionPublic').css({display:"block"});
+			});
+
+			$('.table ').on('click','tbody >tr',function() {
+
+				window.location.href='/session/'+$(this).attr('data-url');
+
+			});
+
+			$('.settings').click(function(e){
+				e.stopPropagation();
+				$('#modal-settings').modal("show");
+
+
+			});
+
+			$(".sessiontable").tablesorter();
+
+			var sessionid;
+			var index;
+			$('.deleteSessionBtn').on('click',function(e){
+
+				e.stopPropagation();
+
+				index=$(this).parent().parent().index();
+				sessionid=$('#sessions').children().eq(index).attr('data-url');
+				$('#modal-delete').modal("show");
+
+			});
+
+			var update;
+			$('tbody tr').each(function(i,obj){
+
+				$(obj).each(function(i,tr){
+					var time= moment($.trim($(tr).children().eq(5).text()));
+					update = function(){
+						$(tr).children().eq(5).text(time.fromNow());
+					};
+
+					update();
+					setInterval(update, 60000);
+
+
+				});
+
+			});
+
+
+
+			$('#deleteAllSessionsBtn').on('click',function(){
+
+				$('tbody tr').each(function(i,obj){
+
+					$(obj).each(function(i,tr){
+						var sessionowner= $.trim($(tr).children().eq(1).text());
+						if(sessionowner=='You'){
+							$(tr).remove();
+						}
+					});
+
+				});
+
+
+
+				$.post('/sessions/remove',{deleteAll:true});
+
+
+			});
+
+			$('#leaveAllSessionsBtn').on('click',function(){
+
+
+				$('tbody tr').each(function(i,obj){
+
+					$(obj).each(function(i,tr){
+						var sessionowner= $.trim($(tr).children().eq(1).text());
+						if(sessionowner!='You'){
+							$(tr).remove();
+						}
+					});
+
+				});
+
+				$.post('/sessions/leave',{leaveAll:true},function(){
+
+				});
+
+			});
+
+			$('#deleteSessionConfirm').on('click',function(){
+
+				$('#sessions').children().eq(index).remove();
+
+				$.post('/session/delete',{session:sessionid});
+
+			});
+
+			$('table').on('click','.glyphicon-share-alt',function(e){
+				e.stopPropagation();
+				index=$(this).parent().parent().index();
+				sessionid=$('#sessions').children().eq(index).attr('data-url');
+				$('#modal-leave').modal("show");
+
+			});
+
+			$('#leaveSessionBtn').on('click',function(e){
+
+				$('#sessions').children().eq(index).remove();
+
+				$.post('/session/leave',{session:sessionid});
+			});
+
+			$('.invitationsMenu').on('click','.acceptInvite',function(e){
+
+				var session=$(this).parent().find('.invSessionID').val();
+				var sessiontitle='';
+
+				$(this).parent().remove();
+
+				if($('.invitationsMenu > li').length==0){
+					$('.invitationsMenu').hide();
+				}
+
+
+				$.post('/user/inviteresponse',{session:session,accepted:true},function(response){
+
+					if(response==-2){
+						$('#errortext').text("Session doesn't exist anymore.");
+						$('#modal-error').modal('show');
+					}else{
+						var visibility;
+						var password;
+
+						if(response.password){
+							password='Yes';
+						}else{
+							password='No';
+						}
+
+						if(response.visibility=='Public'){
+							visibility='No';
+						}else{
+							visibility='Yes';
+						}
+
+						if(response.title!=''){
+							sessiontitle=response.title;
+						}else{
+							sessiontitle=response.session;
+						}
+
+						if($('tr[data-url="'+session+'"]').length){
+							$('tr[data-url="'+session+'"]').remove();
+						}
+
+						var time= moment(response.creation);
+
+
+						$('tbody').append('<tr class="session" data-url="'+response.session+'"><td>'+sessiontitle+'</td><td>'+response.Owner+' </td><td>'+visibility+'</td><td>'+password+'</td><td>'+response.members+'</td><td>'+new Date(response.creation).toString().replace('GMT+0200 (Mitteleuropäische Sommerzeit)','')+'</td><td>'+response.posts+'</td><td></td><td><a  data-target="#modal-leave" data-toggle="modal" class="glyphicon glyphicon-share-alt small"></a></td>');
+
+						var update = function(){
+							$('tr[data-url="'+session+'"]').children().eq(5).text(time.fromNow());
+						};
+
+						update();
+						setInterval(update, 60000);
+
+					}
+
+				});
+
+				e.stopPropagation();
+
+			});
+
+
+
+			$('.invitationsMenu').on('click','.decline-invite',function(e){
+				var session=$(this).parent().find('.invSessionID').val();
+
+				$(this).parent().remove();
+
+				if($('.invitationsMenu > li').length==0){
+					$('.invitationsMenu').hide();
+				}
+
+				$.post('/user/inviteresponse',{session:session,accepted:false},function(response){
+
+
+				});
+
+				e.stopPropagation();
+
+			});
+
+			if($('.invitationsMenu > li').length==0){
+				$('.invitationsMenu').hide();
+			}
+
+			$(document).click(function(){
+				$(".invitationsMenu").hide();
+			});
+
+
+			$('#invitationsBtn').on('click',function(){
+
+
+				
+
+				if($('.invitationsMenu > li').length==0){
+					$('.invitationsMenu').hide();
+				}else if($('.invitationsMenu').is(':visible')){
+					$('.invitationsMenu').hide();
+				}else{
+					$('.invitationsMenu').show();
+				}
+
+
+
+
+
+				$.post('/invitationscounter/reset',{reset:true},function(result){
+					if(result){
+						$('.navbar-new').remove();
+					}
+
+				});
+
+
+			});
+
+			$('#changeAccPassBtn').on('click',function(){
+				$(this).attr("disabled", true);
+				window.setTimeout(function() { $(".alert").fadeOut(500,function(){$('#changeAccPassBtn').removeAttr('disabled');}); },600);
+
+				var oldpass=$('#oldPass').val();
+				var newpass=$('#newPass').val();
+				var owner=$('#usermail').val();
+
+				if(!oldpass || !newpass){
+					$('#changePassTitle').after('<div class="alert alert-danger text-center">Please fill in both fields!</div>');
+				}else{
+
+					$.post('/user/changepassword',{user:owner,oldpass:oldpass,newpass:newpass},function(result){
+
+						if(result=='1'){
+							$('#changePassTitle').after('<div class="alert alert-success text-center">Password changed!</div>');
+							window.setTimeout(function() { $('#modal-container-changeAccountPass').modal('hide')},1000);
+						}else if(result=='-3'){
+							$('#changePassTitle').after('<div class="alert alert-danger text-center">Password incorrect!</div>');
+
+						}
+					});
+
+				}
+			});
+
+			$('#createSessionBtn').on('click',function(e){
+
+				window.setTimeout(function() { $(".alert").fadeOut(600,function(){$('#createSessionBtn').removeAttr('disabled');}); },500);
+
+
+				var sessionPass=$('#sessionpassword').val();
+				var sessionPassConfirm=$('#sessionPassConfirm').val();
+
+				if((!sessionPass && sessionPassConfirm)|| (sessionPass && !sessionPassConfirm)){
+					e.preventDefault();
+					$('#createSession-Title').after('<div class="alert alert-danger text-center">Please fill in both fields! </div>');
+
+				}else if(sessionPass!=sessionPassConfirm){
+					e.preventDefault();
+					$('#createSession-Title').after('<div class="alert alert-danger text-center">Passwords not the same! </div>');
+				}
+			});
+
+
+			var passwordflag;
+			$('.settings').on('click',function(){
+				index=$(this).parent().parent().index();
+				sessionid=$('#sessions').children().eq(index).attr('data-url');
+
+				passwordflag=$('tr[data-url="'+sessionid+'"]').children().eq(3).text();
+				var title=$('tr[data-url="'+sessionid+'"]').prop('title');
+				var visibility= $.trim($('tr[data-url="'+sessionid+'"]').children().eq(2).text());
+
+				$('#sessionTitle_new').val(title);
+
+				if(visibility=='Yes'){
+					$('.optionPrivate').css({display:"none"});
+					$('.visibilityBtn').empty();
+					$('.visibilityBtn').append('<i class="fa fa-users"></i> Private<span class="caret"></span>');
+					$('.optionPublic').css({display:"block"});
+
+				}else{
+					$('.optionPublic').css({display:"none"});
+					$('.visibilityBtn').empty();
+					$('.visibilityBtn').append('<span class="glyphicon glyphicon-globe"></span> Public<span class="caret"></span>');
+					$('.optionPrivate').css({display:"block"});
+
+				}
+
+				if(passwordflag=='Yes'){
+
+					$('#passwordSettings > label[for="create_sessionPass"]').text('Change Password:')
+					$('#OldsessionPass').show();
+					$('#removeSessionPassLink').show();
+					$('#checkboxNoPassword').parent().hide();
+					$('#create_sessionPass').attr('placeholder','New Password');
+
+				}else{
+					$('#OldsessionPass').hide();
+					$('#removeSessionPassLink').hide();
+					$('#checkboxNoPassword').parent().show();
+					$('#passwordSettings > label[for="create_sessionPass"]').text('Session Lock:')
+
+				}
+
+			});
+
+			$('#removeSessionPassLink').on('click',function(){
+				$('#modal-settings').modal('hide');
+				$('#modal-removePass').modal('show');
+			});
+
+
+
+			$('#checkboxNoPassword').on('click',function(){
+
+				var property=$(this).prop('checked');
+
+				if(property){
+					$('#create_sessionPass').val('').attr('disabled',true);
+					$('#confirm_sessionPass').val('').attr('disabled',true);
+				}else{
+					$('#create_sessionPass').val('').removeAttr('disabled');
+					$('#confirm_sessionPass').val('').removeAttr('disabled');
+
+				}
+			});
+
+			$('#removeSessionPass').on('click',function(){
+
+				window.setTimeout(function() { $(".alert").fadeOut(600,function(){$('#removeSessionPass').removeAttr('disabled');}); },500);
+
+				var sessionpass=$('#SessionPassWord').val();
+
+
+				if(!sessionpass){
+					$('#removePassTitle').after('<div class="alert alert-danger text-center">Please fill in the Password!</div>');
+				}else{
+					$.post('/session/resetPassword',{session:sessionid,sessionpass:sessionpass},function(result){
+
+						if(result=='-3'){
+							$('#removePassTitle').after('<div class="alert alert-danger text-center">Wrong Password!</div>');
+						}else{
+							$('tr[data-url="'+sessionid+'"]').children().eq(3).text('No');
+							$('#modal-removePass').modal('hide');
+						}
+
+
+					});
+				}
+			});
+
+			$('#sessionChangeSettingsBtn').on('click',function(){
+
+				var sessionTitle= $.trim($('#sessionTitle_new').val());
+				var visibility= $.trim($('#visibility').text());
+				var sessionpassword=$('#create_sessionPass').val();
+				var sessionpassconfirm=$('#confirm_sessionPass').val();
+				var oldSessionPass=$('#OldsessionPass').val();
+				var okay;
+				var toDo;
+
+				window.setTimeout(function() { $(".alert").fadeOut(600,function(){$('#sessionChangeSettingsBtn').removeAttr('disabled');}); },500);
+				if(passwordflag=='Yes'){
+
+					if( (sessionpassconfirm.length==0 || sessionpassword.length==0) && oldSessionPass.length>0 ){
+						$('#title-settings').after('<div class="alert alert-danger text-center">Please fill in both fields! </div>');
+					}else if(sessionpassconfirm!=sessionpassword){
+						$('#title-settings').after('<div class="alert alert-danger text-center">Passwords not same! </div>');
+					}else if(sessionpassconfirm.length==0 && sessionpassword.length==0 && oldSessionPass.length==0){
+						toDo='';
+						okay='true';
+					}else{
+
+						okay='true';
+						toDo='change password';
+
+					}
+
+				}else if(passwordflag=='No'){
+
+					if( (sessionpassconfirm.length==0 || sessionpassword.length==0) && !$('#checkboxNoPassword').prop('checked') ){
+						$('#title-settings').after('<div class="alert alert-danger text-center">Please fill in both fields! </div>');
+					}else if(sessionpassconfirm!=sessionpassword){
+						$('#title-settings').after('<div class="alert alert-danger text-center">Passwords not same! </div>');
+					}else if($('#checkboxNoPassword').prop('checked')){
+						okay='true';
+						toDo='';
+					}else{
+						okay='true';
+						toDo='set password';
+					}
+				}
+
+				if(okay=='true'){
+
+					$.post('/session/settings/change',{sessionID:sessionid,title:sessionTitle,visibility:visibility,password:sessionpassword,oldpassword:oldSessionPass,todo:toDo},function(result){
+
+						if(result=='-3'){
+							$('#title-settings').after('<div class="alert alert-danger text-center">Wrong Passowrd!</div>');
+						}
+
+						if(result=='2'){
+							$('tr[data-url="'+sessionid+'"]').children().eq(3).text('Yes');
+							$('.modal').modal('hide');
+						}
+
+						if(result=='1'){
+							$('.modal').modal('hide');
+						}
+
+						if(result=='Session Changed'){
+							$('.modal').modal('hide');
+						}
+					});
+
+				}
+
+			});
+
+			socket = io.connect('http://' + window.location.hostname + (window.location.port === '' ? '' : ':' + window.location.port));
+
+			socket.on('connect', function() {
+				var sessionId=$('#activeSession').val();
+				var data={user:$('#usermail').val(),session:sessionId};
+
+				socket.emit('join session', data);
+			});
+
+			socket.on('member leaved',function(member){
+
+				var membercounter;
+
+				if($('tr[data-url="'+member.session+'"]').length){
+					membercounter=parseInt($('tr[data-url="'+member.session+'"]').children().eq(4).text());
+					membercounter=membercounter-1;
+					$('tr[data-url="'+member.session+'"]').children().eq(4).text(membercounter);
+				}
+
+			});
+
+			socket.on('member accepted',function(member){
+
+				var membercounter;
+
+				if($('tr[data-url="'+member.session+'"]').length){
+					membercounter=parseInt($('tr[data-url="'+member.session+'"]').children().eq(4).text());
+					membercounter=membercounter+1;
+
+					$('tr[data-url="'+member.session+'"]').children().eq(4).text(membercounter);
+				}
+
+			});
+
+			socket.on('visibility changed',function(data){
+				if(data.visibility=='Private'){
+
+					$('tr[data-url="'+data.session+'"]').children().eq(2).text('Yes');
+
+				}else if(data.visibility=='Public'){
+					$('tr[data-url="'+data.session+'"]').children().eq(2).text('No');
+				}
+			});
+
+			socket.on('title changed',function(data){
+
+				var title=data.title;
+
+				$('tr[data-url="'+data.session+'"]').attr('title',title);
+
+				if(title.length>15){
+					title=data.title.substring(0,12)+'...';
+				}
+
+				$('tr[data-url="'+data.session+'"]').children().eq(0).text(title);
+			});
+
+			socket.on('password set',function(data){
+
+				if($('tr[data-url="'+data.session+'"]').length){
+
+					$('tr[data-url="'+data.session+'"]').children().eq(3).text('Yes');
+				}
+
+			});
+
+			socket.on('password removed',function(data){
+
+				if($('tr[data-url="'+data.session+'"]').length){
+
+					$('tr[data-url="'+data.session+'"]').children().eq(3).text('No');
+				}
+			});
+
+			socket.on('Note increment',function(note){
+
+				var membercounter;
+
+				if($('tr[data-url="'+note.sessionId+'"]').length){
+
+					membercounter=parseInt($('tr[data-url="'+note.sessionId+'"]').children().eq(6).text());
+					membercounter=membercounter+1;
+
+					$('tr[data-url="'+note.sessionId+'"]').children().eq(6).text(membercounter);
+				}
+
+			});
+
+			socket.on('Note decrement',function(note){
+
+				var membercounter;
+
+				if($('tr[data-url="'+note.sessionId+'"]').length){
+
+					membercounter=parseInt($('tr[data-url="'+note.sessionId+'"]').children().eq(6).text());
+					membercounter=membercounter-1;
+
+					$('tr[data-url="'+note.sessionId+'"]').children().eq(6).text(membercounter);
+				}
+
+			});
+
+
+
+
+			socket.on('invitation incoming',function(invitation){
+
+				var sessiontitle='';
+
+				if(invitation.title!=''){
+					sessiontitle=invitation.title;
+				}else{
+					sessiontitle='No Title';
+				}
+
+				if(!$('.navbar-new').length){
+					$('#invitations').after('<span class="navbar-new invitationcounter">'+invitation.unread+'</span>');
+				}else{
+					$('.navbar-new').text('').append(invitation.unread);
+				}
+
+				$('.invitationsMenu').prepend('<li> <input type="hidden" class="invSessionID" value="'+invitation.session+'"> <span class="invitationtext">'+sessiontitle+'</span> <p class="btn btn-xs glyphicon glyphicon-ok acceptInvite pull-right" ></p>  <p class="btn btn-xs glyphicon glyphicon-remove decline-invite pull-right " ></p> </li>');
+
+			});
+
+			socket.on('session deleted',function(sessionID){
+
+			});
+
+			socket.on('session owner',function(result){
+
+				if($('tr[data-url="'+result.session+'"]').length){
+					$('tr[data-url="'+result.session+'"]').children().eq(1).text(result.user);
+
+				}
+
+			});
+
+
+
+
+
+
+		});
+
+
+
+
+
+	</script>
+
+
+
+</head>
+<body>
+
+
+
+<!-- Navbar Top============================================================================================================================================================================ -->
+
+
+<div class="navbar navbar-default navbar-fixed-top navbar-inverse" role="navigation">
+	<div class="container">
+		<div class="navbar-header">
+			<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-top">
+				<span class="sr-only">Toggle navigation</span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+			</button>
+			<a class="navbar-brand" href="">Brainstormer</a>
+		</div>
+		<div class="navbar-collapse collapse navbar-top">
+
+
+
+
+
+
+
+			<ul class="nav navbar-nav navbar-right">
+
+				<li class="dropdown">
+					<a href="" id="invitationsBtn" class="dropdown-toggle" data-toggle="dropdown"><span id="invitations" class="glyphicon glyphicon-envelope"></span> <%if(unread>0){%> <span class="navbar-new invitationcounter"><%=unread%></span> <%}%>  </a>
+					<ul class="dropdown-menu invitationsMenu ">
+
+
+
+						<%if(invitations){%>
+							<%for(var i=0;i<invitations.length;i++){%>
+
+						<li> <input type="hidden" class="invSessionID" value="<%=invitations[i]%>"> <span class="invitationtext"> <%if(invitationNames[i]){%> <%=invitationNames[i]%> <%}else{%> <%='No Title'%> <%}%> </span> <span class="btn btn-xs glyphicon glyphicon-ok acceptInvite pull-right " ></span>  <span class="btn btn-xs glyphicon glyphicon-remove decline-invite pull-right" ></span>  </li>
+
+							<%}%>
+						<%}%>
+
+
+					</ul>
+				</li>
+
+				<li class="dropdown">
+					<a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span><%= username%> <b class="caret"></b></a>
+					<input type="hidden" id="usermail" value="<%= useremail%>">
+					<input type="hidden" id="activeSession" value="<%= activeSession%>">
+					<ul class="dropdown-menu">
+
+						<li>  <a href="" data-toggle="modal" data-target="#modal-container-changeAccountPass"> <span class="fa fa-key"></span> Change Password</a>   </li>
+						<li>  <a href="/logout" class="opt highlighted" ><span class="glyphicon glyphicon-log-out"></span> Logout</a>  </li>
+
+
+					</ul>
+				</li>
+			</ul>
+
+            <ul class="navbar-form navbar-right" action="#" role="search">
+                <input type="search" class="form-control col-sm-8" placeholder="Search Topic">
+            </ul>
+
+
+		</div>
+	</div>
+</div>
+
+<!-- //Navbar Top============================================================================================================================================================================ -->
+
+
+<!-- Navbar Bottom============================================================================================================================================================================ -->
+
+
+<nav id="footerBottom" class="navbar navbar-default navbar-fixed-bottom navbar-inverse" role="navigation">
+
+	<div class="container">
+
+
+
+	</div>
+</nav>
+
+<!-- //Navbar Bottom============================================================================================================================================================================ -->
+
+<!-- Modal============================================================================================================================================================================ -->
+
+<div class="modal fade" id="modal-createSession" >
+	<div class="modal-dialog modal-sm">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button  type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h4 class="modal-title" id="createSession-Title">
+					Create Session
+				</h4>
+
+			</div>
+
+			<form method="post" action="/session/new/">
+
+			<div class="modal-body">
+
+
+					<div class="form-group">
+						<label for="userMail">Session Title:</label><input type="text" name="sessiontitle" class="form-control" id="sessionTitle" placeholder="Session-Title" >
+
+					</div>
+
+
+				<div class="btn-group btn-block">
+					<label for="visibility">Visibility:</label>
+					<button name="visibility" id="visibility" type="button" class="btn  btn-block dropdown-toggle visibilityBtn" data-toggle="dropdown">
+						<span class="glyphicon glyphicon-globe"></span> Public
+						<span class="caret"></span>
+					</button>
+					<input id="vsbility" type="hidden" name="visibility" value="Public">
+					<ul id="visibilityOptions" class="dropdown-menu btn-block">
+
+						<li> <a href="" id="optionPublic" class="text-center optionPublic" data-toggle="dropdown"><span class="glyphicon glyphicon-globe "></span> Public</a>  </li>
+
+						<li> <a href="" id="optionPrivate" class="text-center optionPrivate" data-toggle="dropdown"> <i class="fa fa-users"></i> Private  </a>  </li>
+					</ul>
+				</div>
+
+				<div class="">
+					<label for="create_sessionPass">Session Lock (optional):</label><input type="password" name="sessionpassword" class="form-control" id="sessionpassword" placeholder="Session-Password" >
+					<input  type="password" class="form-control confirm_sessionPass" id="sessionPassConfirm"  placeholder="Confirm-Password" >
+				</div>
+
+
+			</div>
+
+
+			<div class="modal-footer">
+				<button type="submit" id="createSessionBtn"  class="btn btn-block btn-success">Create Session</button>
+
+			</div>
+			</form>
+
+
+		</div>
+
+	</div>
+
+</div>
+
+<div class="modal fade" id="modal-settings" >
+	<div class="modal-dialog modal-sm">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button  type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h4 class="modal-title" id="title-settings">
+					Edit Session
+				</h4>
+
+			</div>
+
+			<div class="modal-body">
+
+					<div class="form-group">
+						<label for="sessionTitle_new">Session Title:</label><input type="text" class="form-control" id="sessionTitle_new" placeholder="Session-Title" >
+
+					</div>
+
+				<div class="btn-group btn-block">
+					<label for="visibility_new">Visibility:</label>
+					<button id="visibility" type="button" class="btn  btn-block dropdown-toggle visibilityBtn" data-toggle="dropdown">
+						<span class="glyphicon glyphicon-globe"></span> Public
+						<span class="caret"></span>
+					</button>
+					<ul id="visibilityOptions" class="dropdown-menu btn-block">
+
+						<li> <a href="" id="optionPublic" class="text-center optionPublic" data-toggle="dropdown"><span class="glyphicon glyphicon-globe "></span> Public</a>  </li>
+
+						<li> <a href="" id="optionPrivate" class="text-center optionPrivate" data-toggle="dropdown"> <i class="fa fa-users"></i> Private  </a>  </li>
+
+					</ul>
+				</div>
+
+				<div id="passwordSettings">
+					<label for="create_sessionPass">Session Lock:</label>
+					<input  type="password" class="form-control " id="OldsessionPass" placeholder="Old Password" >
+					<input type="password" class="form-control" id="create_sessionPass" placeholder="Session Password" >
+					<input  type="password" class="form-control " id="confirm_sessionPass" placeholder="Confirm Password" >
+					<label >
+
+						<input class="" type="checkbox" value="" id="checkboxNoPassword">
+						Don't set Password
+					</label>
+
+					<div class="text-center">
+					<a id="removeSessionPassLink" class="btn-link ">Remove Password</a></div>
+				</div>
+
+
+			</div>
+			<div class="modal-footer">
+				<button  id="sessionChangeSettingsBtn"  class="btn btn-block btn-warning">Save Settings</button>
+
+			</div>
+		</div>
+
+	</div>
+
+</div>
+
+<div class="modal fade" id="modal-delete" >
+	<div class="modal-dialog modal-sm ">
+		<div class="modal-content ">
+
+			<div class="modal-header ">
+				<button  type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h4 class="modal-title" >
+					Delete Session
+				</h4>
+			</div>
+
+			<div class="modal-body ">
+				<p>Really want to delete Session?</p>
+
+			</div>
+
+			<div class="modal-footer ">
+
+				<div class="btn-toolbar pull-right">
+
+					<button id="deleteSessionConfirm" class="btn btn-danger" data-target="#modal-delete" data-dismiss="modal" >Delete</button>
+					<button class="btn" data-target="#modal-delete" data-dismiss="modal">Abort</button>
+
+				</div>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</div>
+
+<div class="modal fade" id="modal-leave" >
+	<div class="modal-dialog modal-sm ">
+		<div class="modal-content ">
+
+			<div class="modal-header ">
+				<button  type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h4 class="modal-title" >
+					Leave Session
+				</h4>
+			</div>
+
+			<div class="modal-body ">
+				<p>Really want to leave Session?</p>
+
+			</div>
+
+			<div class="modal-footer ">
+
+				<div class="btn-toolbar pull-right">
+
+					<button id="leaveSessionBtn" class="btn btn-warning" data-target="#modal-leave" data-dismiss="modal" >Leave</button>
+					<button class="btn" data-target="#modal-leave" data-dismiss="modal">Abort</button>
+
+				</div>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</div>
+
+<div class="modal fade" id="modal-deleteAll" >
+	<div class="modal-dialog modal-sm ">
+		<div class="modal-content ">
+
+			<div class="modal-header ">
+				<button  type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h4 class="modal-title" >
+					Delete Sessions
+				</h4>
+			</div>
+
+			<div class="modal-body ">
+				<p>Really want to remove all your Sessions?</p>
+
+			</div>
+
+			<div class="modal-footer ">
+
+				<div class="btn-toolbar pull-right">
+
+					<button id="deleteAllSessionsBtn" class="btn btn-danger" data-target="#modal-deleteAll" data-dismiss="modal" >Remove</button>
+					<button class="btn" data-target="#modal-deleteAll" data-dismiss="modal">Abort</button>
+
+				</div>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</div>
+
+
+<div class="modal fade" id="modal-leaveAll" >
+	<div class="modal-dialog modal-sm ">
+		<div class="modal-content ">
+
+			<div class="modal-header ">
+				<button  type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h4 class="modal-title" >
+					Leave Sessions
+				</h4>
+			</div>
+
+			<div class="modal-body ">
+				<p>Really want to leave all Sessions?</p>
+
+			</div>
+
+			<div class="modal-footer ">
+
+				<div class="btn-toolbar pull-right">
+
+					<button id="leaveAllSessionsBtn" class="btn btn-warning" data-target="#modal-leaveAll" data-dismiss="modal" >Leave</button>
+					<button class="btn" data-target="#modal-leaveAll" data-dismiss="modal">Abort</button>
+
+				</div>
+
+			</div>
+
+		</div>
+
+	</div>
+
+</div>
+
+<div class="modal fade" id="modal-error" >
+	<div class="modal-dialog ">
+		<div class="modal-content ">
+
+			<div class="modal-body ">
+				<div class="alert alert-danger fade in">
+
+					<h4>Sorry!</h4>
+					<p id="errortext"></p>
+					<p>
+						<button data-dismiss="modal" data-target="#modal-error" type="button" class="btn btn-danger center-block">Okay</button>
+
+					</p>
+				</div>
+
+			</div>
+
+
+
+		</div>
+
+	</div>
+
+</div>
+
+<div class="modal fade" id="modal-container-changeAccountPass" role="dialog" aria-labelledby="inviteUserLabel" aria-hidden="true">
+	<div class="modal-dialog modal-sm">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button  type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h4 class="modal-title" id="changePassTitle">
+					Change Password
+				</h4>
+
+			</div>
+
+			<div class="modal-body">
+
+
+				<form id="">
+
+
+					<div class="form-group">
+						<label for="oldPass">Old Password:</label><input type="password" class="form-control" id="oldPass" placeholder="Old Password" >
+						<label for="newPass">New Password:</label><input type="password" class="form-control" id="newPass" placeholder="New Pass" >
+					</div>
+
+				</form>
+
+
+			</div>
+			<div class="modal-footer">
+				<button id="changeAccPassBtn" class="btn btn-block btn-warning" >Change Password</button>
+
+			</div>
+		</div>
+
+	</div>
+
+</div>
+
+
+<div class="modal fade" id="modal-removePass" role="dialog" aria-labelledby="inviteUserLabel" aria-hidden="true">
+	<div class="modal-dialog modal-sm">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button  type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h4 class="modal-title" id="removePassTitle">
+					Remove Password
+				</h4>
+
+			</div>
+
+			<div class="modal-body">
+
+
+				<form id="">
+
+
+					<div class="form-group">
+						<label for="SessionPassWord">Session Password:</label><input type="password" class="form-control" id="SessionPassWord" placeholder="Session Password" >
+
+					</div>
+
+				</form>
+
+
+			</div>
+			<div class="modal-footer">
+				<button id="removeSessionPass" class="btn btn-danger"  >Remove</button>
+				<button class="btn" data-target="#modal-removePass" data-dismiss="modal">Abort</button>
+
+			</div>
+		</div>
+
+	</div>
+
+</div>
+
+
+
+<!-- //Modal============================================================================================================================================================================ -->
+
+
+<!-- Desk============================================================================================================================================================================ -->
+
+<div id="desk" class="container-fluid">
+
+	<div id="SessionPanel" class="panel panel-default">
+		<!-- Default panel contents -->
+		<div class="panel-heading text-center"><span class="glyphicon glyphicon-th-large"></span> Sessions</div>
+
+
+		<!-- Table -->
+		<div class="table-responsive">
+		<table class="table table-hover sessiontable">
+			<thead>
+				<tr >
+					<th>Title<a href="" data-toggle="dropdown" class="caret"></a></th>
+					<th>Owner<a href="" data-toggle="dropdown" class="caret"></a></th>
+					<th>Private<a href="" data-toggle="dropdown" class="caret"></a></th>
+					<th>Password<a href="" data-toggle="dropdown" class="caret"></a></th>
+					<th>Members<a href="" data-toggle="dropdown" class="caret"></a></th>
+					<th>Creation<a href="" data-toggle="dropdown" class="caret"></a></th>
+					<th>Posts<a href="" data-toggle="dropdown" class="caret"></a></th>
+					<th>Settings</th>
+					<th>Delete/Leave</th>
+
+
+				</tr>
+
+			</thead>
+			<tbody id="sessions">
+
+			<% for(var i=0;i<sessions.length;i++){%>
+
+			<tr class="session" data-url="<%=sessions[i].uuid%>" title="<%=sessions[i].title%>" >
+
+				<td> <%if(sessions[i].title){ if(sessions[i].title.length>15){%><%=sessions[i].title.substring(0,12)+'...'%> <%}else{%> <%=sessions[i].title%> <%}%> <%}else{%> <%=sessions[i].uuid%> <%}%>  </td>
+				<td> <% if(!sessions[i].owner){%> No Owner <%}else if(useremail==sessions[i].owner){%> You    <%}else{%> <%=sessions[i].owner%><%}%>  </td>
+				<td> <%if(sessions[i].visibility=='Private'){%>Yes<%}else{%>No<%}%></td>
+				<td><%if(sessions[i].password){%>Yes<%}else{%>No<%}%></td>
+				<td><%=sessions[i].users.length%></td>
+				<td> <span data-content="Popover with data-trigger" rel="popover" data-placement="bottom" data-original-title="Title" data-trigger="hover"> <%=new Date(sessions[i].creation).toString().replace('GMT+0200 (Mitteleuropäische Sommerzeit)','')%>  </span></td>
+				<td> <%var count=0;
+					for(var j=0;j<countnotes.length;j++){
+						if(countnotes[j].sessionid==sessions[i].uuid){
+					        count=countnotes[j].count;
+
+						}
+					}%>
+					<%=count%>
+				</td>
+
+				<td><% if(useremail==sessions[i].owner){%>
+					<a  data-target="#modal-settings" data-toggle="modal" class="glyphicon glyphicon-cog settings"></a>
+					<%} %>
+				</td>
+
+				<td><% if(useremail==sessions[i].owner){%>
+					<button data-toggle="modal" data-target="#modal-delete" class="btn btn-default btn-xs deleteSessionBtn pull-left"><span class="glyphicon glyphicon-remove"></span></button>
+					<%}else{ %>
+					<a  data-target="#modal-leave" data-toggle="modal" class="glyphicon glyphicon-share-alt small"></a>
+					<%}%>
+				</td>
+
+			</tr>
+
+			<%}%>
+
+			</tbody>
+
+		</table>
+		</div>
+
+		<div class="panel-footer">
+
+			<p class="form-group text-center">
+				<button data-toggle="modal" data-target="#modal-createSession" class="btn btn-success btn-wide ">New</button>
+				<button data-toggle="modal" data-target="#modal-deleteAll" class="btn btn-link glyphicon glyphicon-trash pull-right" ></button>
+				<button data-toggle="modal" data-target="#modal-leaveAll" class="btn btn-link glyphicon glyphicon-share-alt pull-right" ></button>
+			</p>
+
+
+
+		</div>
+	</div>
+
+
+
+</div>
+
+<!-- //Desk============================================================================================================================================================================ -->
+
+
+
+</body>
+</html>
+
+
+
+<script id="contribution" type="text/html">
+	<div
+			class="contribution ui-widget-content ui-draggable" uuid="{{uuid}}" creation="{{creation}}">
+		<section>{{text}}</section>
+	</div>
+</script>
