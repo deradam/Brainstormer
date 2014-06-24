@@ -37,16 +37,21 @@
 			if($('input[type="search"]').val().length>0){
 				$('input[type="search"]').val('');
 			}
-			
+
 
 
             $('input[type="search"]').keyup(function (event) {
+
                 var text = $('input[type="search"]').val();
 	            $('.matches').removeClass('matches');
+
                 event.stopPropagation();
 
                 if (event.which == 27) {
                     $('input[type="search"]').val('');
+	                $('.matches').removeClass('matches');
+	                $('.session').show();
+
 
                 } else if(text.length==0){
                     $('.matches').removeClass('matches');
@@ -55,15 +60,14 @@
 
 
                     $.post('/sessions/search/posts',{text:text},function(result){
-                        var sessions=result.sessions;
-                        if(sessions){
 
+                        var sessions=result.sessions;
+
+                        if(sessions){
 
                             $.each(sessions,function(i,session){
                                 $('tr[data-url="'+session+'"]').addClass('matches');
                             });
-
-
 
                             $('tbody tr').each(function(i,session){
 
@@ -724,11 +728,6 @@
 		<div class="navbar-collapse collapse navbar-top">
 
 
-
-
-
-
-
 			<ul class="nav navbar-nav navbar-right">
 
 				<li class="dropdown">
@@ -841,6 +840,7 @@
 				<button type="submit" id="createSessionBtn"  class="btn btn-block btn-success">Create Session</button>
 
 			</div>
+
 			</form>
 
 

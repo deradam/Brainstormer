@@ -16,7 +16,7 @@
     /*
     * Edited by Süleyman Güzeldal
     *
-    * Cursor in Textarea is now at the End.
+    *-> Cursor in Textarea is now at the End.
     *
     *
     * */

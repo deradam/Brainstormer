@@ -146,8 +146,6 @@ exports.setSessionPass=function(members,owner,session){
 
     }
 
-    io.sockets.in(session).emit('password set',{session:session});
-
 };
 
 exports.sessionPassRemoved=function(members,owner,session){

@@ -70,7 +70,6 @@ $('document').ready(function () {
                 $.post('/notes/update/' + _id, {color: e.color});
             }
 
-            //alert(e.color);
      });
 
 
@@ -133,8 +132,8 @@ $('document').ready(function () {
     });
     $('input[type="search"]').keyup(function (event) {
 
-
         event.stopPropagation();
+
         if (event.which == 27) {
             resetSearch();
         } else {
@@ -376,15 +375,11 @@ $('document').ready(function () {
     $('#editableBtn').on('click',function(){
 
 
-        //$('.contribution[creator=' + $('#userID').val() + ']').addClass('selected');
-
-
-
         var noteId=$('.selected').attr('_id');
-        var creator=$('#userID').val();
+        var userID=$('#userID').val();
 
 
-        $.post('/note/setedit',{note_id:noteId,editable:'Yes',creator:creator},function(result){
+        $.post('/note/setedit',{note_id:noteId,editable:'Yes',user:userID},function(result){
 
 
             if(result=='-3'){
@@ -437,8 +432,8 @@ $('document').ready(function () {
         //$('.contribution[creator=' + $('#userID').val() + ']').addClass('selected');
 
         var noteId=$('.selected').attr('_id');
-        var creator=$('#userID').val();
-        $.post('/note/setedit',{note_id:noteId,editable:'No',creator:creator},function(result){
+        var userID=$('#userID').val();
+        $.post('/note/setedit',{note_id:noteId,editable:'No',user:userID},function(result){
             if(result=='-3'){
                 var stack_context = {"dir1": "down", "dir2": "left", "context": $('.selected')};
 
@@ -798,7 +793,7 @@ var addNote = function () {
         var creator=$('#userID').val();
         var editable='Yes';
         var left = 10 + Math.round(Math.random() * ($('#desk').width() - 150));
-        var top = $('body>header').height() + 10 + Math.round(Math.random() * ($('#desk').height() - $(contribution).height() - 50));
+        var top = $('body>header').height() + 10 + Math.round(Math.random() * ($('#desk').height() - $(contribution).height() - 100));
         var date = new Date();
         var dateString = formatDate(date);
         var uuid = Math.uuid();

@@ -604,20 +604,14 @@ var createSessionAndRedirect = function createSessionAndRedirect(req, res, next,
                 session.owner=user.email;
                 session.users.push(user.email);
 
-                user.save(function(err){
-
-                    if(err){
-                        console.log('Error setting Owner to Session ' + util.inspect(session));
-                    }
-
-                });
-
                 saveSession(req,res,next,session,identificationhash);
 
             }
         });
 
     }else{
+
+        session.visibility='Public';
 
         salt= crypt.randomBytes(256);
         identificationhash = crypt.createHmac("sha1",salt).update(session.uuid).digest("hex");

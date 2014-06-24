@@ -138,11 +138,13 @@ exports.setNoteLock=function(req,res){
 
     var noteId=req.body.note_id;
     var editing=req.body.editable;
-    var creator=req.body.creator;
+    var userRequesting=req.body.user;
 
 
     if(noteId){
+
         Note.findOne({_id:noteId},function(err,note){
+
             if(note){
 
                 Session.findOne({uuid:note.sessionId},function(err,session){
@@ -150,9 +152,10 @@ exports.setNoteLock=function(req,res){
                     if(session){
 
                         User.findOne({email:session.owner},function(err,user){
-                            if(!err){
 
-                                if(note.creator==creator || creator==user._id){
+                            if(user){
+
+                                if(note.creator==userRequesting || userRequesting==user._id){
                                     if(editing=='Yes'){
                                         note.editable='Yes';
                                     }else if(editing=='No'){
@@ -396,14 +399,15 @@ exports.setSessionPass=function(req,res,next){
 
     var sessionpass=req.body.sessionpass;
     var session=req.body.session;
-    var owner=req.body.owner;
-    var salt;
-    var hash ;
+    var user=req.session.email;
 
-    if(req.session.email==owner){
+    var salt;
+    var hash;
+
+    if(user && session && sessionpass){
         Session.findOne({uuid:session},function(err,session){
 
-            if(session.owner==owner && !session.password){
+            if(session.owner==user && !session.password){
                 salt = crypt.randomBytes(256);
                 hash = crypt.createHmac("sha1",salt).update(sessionpass).digest("hex");
 
@@ -412,7 +416,7 @@ exports.setSessionPass=function(req,res,next){
 
                 session.save(function(err){
                     req.session.sesspass=hash;
-                    ws.setSessionPass(session.users,owner,session.uuid);
+                    ws.setSessionPass(session.users,session.owner,session.uuid);
                     res.send('1');
                 })
             }else{
@@ -617,8 +621,6 @@ exports.searchPosts=function(req,res,next){
 
                 sessions.forEach(function(session){
 
-
-
                     if(session){
 
                         Note.findOne({$and:[{sessionId:session.uuid},{text:{$regex : ".*"+text+".*"}}]},function(err,note){
@@ -626,7 +628,7 @@ exports.searchPosts=function(req,res,next){
                             counter=counter+1;
                             if(note){
 
-                                    sessionIDs.push(note.sessionId);
+                                sessionIDs.push(note.sessionId);
 
                             }
 
@@ -645,7 +647,7 @@ exports.searchPosts=function(req,res,next){
                         });
 
                     }else{
-                        res.send('session deleted');
+                        console.log('session deleted');
                     }
 
                 });

@@ -10,7 +10,7 @@
  */
 
 /*
-* Edited by Süleyman Güzeldal
+* Edited by Süleyman Güzeldal:
 *
 * -Double Click Event on Touch Devices
 * -Textareas are draggable
@@ -23,12 +23,6 @@
 //
 
 (function ($) {
-
-
-
-
-
-
 
     // Detect touch support
   $.support.touch = 'ontouchend' in document;
