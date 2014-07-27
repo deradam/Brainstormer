@@ -59,6 +59,7 @@ var Sessions = new Schema({
 
 });
 
+
 var Notes = new Schema({
     uuid: String,
     text: { type: String, default: 'No text'},
