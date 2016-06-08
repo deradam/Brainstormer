@@ -389,13 +389,18 @@ a#startbutton:hover {
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#b4e391', endColorstr='#b4e391', GradientType=0);
 }
 
-a {
-    text-decoration: none;
+div#header a {
     color: white;
 }
 
+a {
+    text-decoration: none;
+    color: dimgrey;
+}
+
 a:visited {
-    color: white;
+    text-decoration: none;
+    color: dimgrey;
 }
 
 footer section {
